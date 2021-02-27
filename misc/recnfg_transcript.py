@@ -7,6 +7,7 @@
     respective computer.
     
 ***************************************************************************''' 
+#TODO implement boolean to save me from warning below
 #WARNING: this code will overwrite your current transcript. You may want to
 #first print out some samples and comment the second loop.
 transcr_path = '/media/mario/audios/spctrgrms/clean/KA/transcript.txt'

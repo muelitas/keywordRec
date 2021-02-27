@@ -5,7 +5,7 @@
     
     Program that scans custom .tsv file from common voice (CV) dataset. Given
     a list of keywords, it grabs n number of clips (lines) of each keyword. It
-    creates a .txt file for each keyword and saves these clips there. If a
+    creates a .txt file for each keyword and saves these lines there. If a
     sentence has 2 or more keywords, it assigns it to the first keyword found.
     
 ***************************************************************************''' 
@@ -62,3 +62,8 @@ for k_word in k_words:
     print(f"{counter} lines were saved for '{k_word}' here {k_word_txt_path}")
     
 tsv.close()
+
+#Personal Note: After this, I check the texts of each clip and see if it
+#contains any word from a different language. If it does, I remove the line
+#from the transcript. I am saving these 'clean' transcripts in:
+#'audios/CV/clips_of_interest_clean'.

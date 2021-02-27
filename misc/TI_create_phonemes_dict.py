@@ -80,7 +80,7 @@ for idx, word in enumerate(vocabulary):
     Dict.write(word + '\t' + phones + '\n')
     Dictionary[word] = phones
 
-    if idx % 1000 == 0:
+    if idx % 100 == 0:
         print(f"\t[{idx+1}/{len(vocabulary)}] words have been phonemized...")
     
 Dict.close()
