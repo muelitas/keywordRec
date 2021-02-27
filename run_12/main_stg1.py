@@ -40,7 +40,7 @@ TRAIN = True #train and validate!
 desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = '/media/mario/audios' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = desktop_path + '/SC_14K_50E/stage1'
+logs_folder = desktop_path + '/dummy/stage1'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 checkpoint_path = logs_folder + '/checkpoint.tar'
@@ -57,7 +57,7 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
@@ -69,7 +69,7 @@ TS_data = {
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -80,7 +80,7 @@ KA_data = {
 #TIMIT's variables and paths
 TI_data = {
     'dataset_ID': 'TI',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ti_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TI/transcript.txt',
     'train_csv': gt_csvs_folder + '/ti_train.csv',
@@ -97,7 +97,7 @@ SC_data = {
     'train_csv': gt_csvs_folder + '/sc_train.csv',
     'dev_csv': gt_csvs_folder + '/sc_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 14000 #Set equal to None if you want to use all audios
+    'num': 200 #Set equal to None if you want to use all audios
 }
 
 #Specify which datasets you want to use for training
@@ -127,7 +127,7 @@ n_mels = [128] #n_feats
 dropout = [0.1]
 learning_rate = [1e-4]
 batch_size = [2]
-epochs = [50]
+epochs = [2]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
