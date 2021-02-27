@@ -55,6 +55,32 @@ def log_message(msg, log_file, mode, both=True):
     #If {both} is true, print to terminal as well
     if both:
         print(msg, end='')
+        
+def log_labels(ipa2char, char2int, log_path):
+    '''Log the conversions that took place from IPA to char and from char to
+    int. In other words, log which integer (label) represented each phoneme'''
+    msg = '\nThe label representation for all runs was the following:\n'
+    msg += '   IPA char  int\n'
+    for [k1, v1], [_, v2] in zip(ipa2char.items(), char2int.items()):
+        msg += f"{k1:>5}{v1:>5}{v2:>5}\n"
+    
+    msg += f"'Blank Label': {len(ipa2char.items())}\n"
+    log_message(msg, log_path, 'a', False)
+    
+def log_k_words_instances(k_words_path, log_path):
+    '''Log the number of times each k_word was found in train and dev csvs'''
+    #Get instances from saved pickle file
+    k_words_num = pickle.load(open(k_words_path, "rb" ))
+    
+    #Log them in {log_path}
+    msg = "\nThis is the number of times each keyword was found in csvs:"
+    msg += "\n\tWORD\t|\tInstances in TRAIN\t|\tInstances in VALIDATION\n"
+    for k_word in list(k_words_num['train'].keys()):
+        msg += f"{k_word:>12}\t\t"
+        msg += f"{k_words_num['train'][k_word]:>10}\t\t\t"
+        msg += f"{k_words_num['dev'][k_word]:>13}\n"
+    
+    log_message(msg, log_path, 'a', False)
 
 def delete_contents(this_dir):
     """Delete contents from folder located in {this_dir}"""

@@ -10,7 +10,6 @@ import copy
 import gc
 import os
 from pathlib import Path
-import pickle
 import random
 from sklearn.model_selection import ParameterGrid
 import sys
@@ -22,10 +21,10 @@ import torch.optim as optim
 import warnings
 
 from models import SpeechRecognitionModel
-from preprocessing import preprocess_data, check_folder, get_mappings, \
-    k_words_stats
+from preprocessing import preprocess_data, check_folder, get_mappings
 from utils import data_processing, train, dev, Metrics, log_model_information, \
-    plot_and_save, log_message, find_best_lr, BucketsSampler, CUSTOM_DATASET
+    plot_and_save, log_message, find_best_lr, BucketsSampler, CUSTOM_DATASET, \
+    log_labels, log_k_words_instances
 
 #Comment this from time to time and check warnings are the same
 warnings.filterwarnings("ignore")
@@ -41,12 +40,11 @@ logs_folder = desktop_path + '/dummy/stage1'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 checkpoint_path = logs_folder + '/checkpoint.tar'
+k_words_path = logs_folder + '/k_words_instances.pickle'
 #Used to determine the labels and translations between them
 ipa2char, char2ipa, char2int, int2char, blank_label = {}, {}, {}, {}, 0
 
 #PREPROCESSING-----------------------------------------------------------------
-#TODO change 'latine' to 'ts_dict'
-#TODO change 'spain' to 'ka_dict'
 root_dicts = '/media/mario/audios/dict'
 gt_csvs_folder = desktop_path + '/gt'
 k_words = ['cero', 'uno', 'dos', 'tres', 'cinco', 'número', 'números']
@@ -58,7 +56,7 @@ k_words = ['cero', 'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 TS_data = {
     'dataset_ID': 'TS',
     'use_dataset': True,
-    'dict': root_dicts + '/latine.pickle',
+    'dict': root_dicts + '/ts_dict.pickle',
     'transcript': '/media/mario/audios/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
@@ -70,7 +68,7 @@ TS_data = {
 KA_data = {
     'dataset_ID': 'KA',
     'use_dataset': True,
-    'dict': root_dicts + '/spain.pickle',
+    'dict': root_dicts + '/ka_dict.pickle',
     'transcript': '/media/mario/audios/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_dev.csv',
@@ -104,7 +102,7 @@ n_mels = [128] #n_feats
 dropout = [0.1]
 learning_rate = [1e-4]
 batch_size = [2]
-epochs = [2]
+epochs = [1]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -123,7 +121,8 @@ ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings(datasets,
     
 if PREPROCESSING: #------------------------------------------------------------
     #In a nutchell: check audios and create csvs for training
-    preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv)
+    preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
+                    k_words_path)
     
 if TRAIN or FIND_LR: #--------------------------------------------------------
     hyper_params = {"gru_dim": GRU['dim'], "gru_hid_dim": GRU['hid_dim'],
@@ -132,10 +131,6 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         "n_class": [blank_label+1], "n_mels": n_mels, "dropout": dropout, 
         "learning_rate": learning_rate, "batch_size": batch_size, "epochs": epochs
     }
-    
-    #Get number of instances in which keywords are found in {dev_csv}
-    #TODO, here, instead of using {phones_dict}, use {datasets}
-    # gt_num = k_words_stats(dev_csv, k_words, phones_dict)
     
     num_runs = len(list(ParameterGrid(hyper_params)))
     msg = "Training and Validation results are saved here:\n\n"
@@ -180,7 +175,6 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
             **kwargs)
                 
         model = SpeechRecognitionModel(hparams).to(device)
-        
         optimizer = optim.AdamW(model.parameters(), hparams['learning_rate'])
         criterion = nn.CTCLoss(blank=blank_label).to(device)
         scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['learning_rate'], 
@@ -231,13 +225,9 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         #Delete model, collect garbage and empty CUDA memory
         #See: https://stackify.com/python-garbage-collection/
         # model.apply(weights_init)
-        del model
-        del criterion
-        del scheduler
-        del optimizer
+        del model, criterion, scheduler, optimizer
         gc.collect()
         torch.cuda.empty_cache()
-        print()
     
     if TRAIN:
         #Save weights of best model, along with its optimizer state and hparams
@@ -265,16 +255,10 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
         log_message(msg, train_log, 'a', True)
         
-        msg = '\nThe label representation for each of these runs was the following:\n'
-        for k,v in ipa2char.items():
-            msg += f'\t{k}: {v}\n'
-        
-        msg += '\n'
-        for k,v in char2int.items():
-            msg += f'\t{k}: {v}\n'
-        
-        msg += f"\t'Blank Label': {blank_label}\n"
-        log_message(msg, miscellaneous_log, 'a', False)
+        #Log labels' conversions (from IPA to char and char to int)
+        log_labels(ipa2char, char2int, miscellaneous_log)
+        #Log & print the number of times each k_word appears in train and dev
+        log_k_words_instances(k_words_path, miscellaneous_log)
     
         print("\nModels summaries, hyper parameters and other miscellaneous info "
               f"can be found here: {miscellaneous_log}")
