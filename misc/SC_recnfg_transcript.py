@@ -24,9 +24,10 @@ def recnfg_transcript(new_root, transcr_path):
         new_lines.append(new_path + '\t' + text + '\t' + duration)
         
         #Use these lines to print some samples
-        # print(new_lines[idx], end='')
-        # if idx >= 1:
-        #     break
+        print(f"Old Line: {line}", end='')
+        print(f"New Line: {new_lines[idx]}", end='')
+        if idx >= 0:
+            break
         
     transcr.close()
     
@@ -43,7 +44,8 @@ new_root = '/media/mario/audios/spctrgrms/test/SC'
 
 #Iterate through folders in {src_dir}; grab a transcript and edit it
 for folder in sorted(os.listdir(src_dir)):
-    folder_path = pj(src_dir, folder)
-    recnfg_transcript(new_root, pj(folder_path, 'transcript.txt'))
+    old_path = pj(src_dir, folder)
+    new_path = pj(new_root, folder)
+    recnfg_transcript(new_path, pj(old_path, 'transcript.txt'))
 
 print("Done, all transcripts of Speech Commands have been reconfigured")
