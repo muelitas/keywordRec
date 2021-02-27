@@ -20,6 +20,7 @@ import torch.utils.data as data
 import torch.optim as optim
 import warnings
 
+import constants as cnstnt
 from models import SpeechRecognitionModel
 from preprocessing import preprocess_data, check_folder, get_mappings
 from utils import data_processing, train, dev, Metrics, log_model_information, \
@@ -35,9 +36,9 @@ warnings.filterwarnings("ignore")
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
 PREPROCESSING = True #preprocessing, get transcripts ready
 FIND_LR = False #find best learning rate
-TRAIN = True #train and validate!
+TRAIN = False #train and validate!
 
-desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
+desktop_path = str(Path.home()) + '/Desktop/ctc_runs5'
 data_root = '/media/mario/audios' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
 logs_folder = desktop_path + '/dummy/stage1'
@@ -57,7 +58,7 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
@@ -69,7 +70,7 @@ TS_data = {
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -91,7 +92,7 @@ TI_data = {
 #Speech Commands' variables and paths
 SC_data = {
     'dataset_ID': 'SC',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/sc_dict.pickle',
     'src_dir': data_root + '/spctrgrms/clean/SC',
     'train_csv': gt_csvs_folder + '/sc_train.csv',
@@ -120,8 +121,7 @@ bucket_boundaries = sorted([2000, 5000, 8000]) #in miliseconds
 drop_last = True
 
 GRU = {'dim': [64], 'hid_dim': [64], 'layers': [2]}
-#WARNING, if stride is changed, paddings may result incorrect
-CNN1 = {'filters': [6], 'kernel': [4], 'stride':[2]}
+CNN1 = {'filters': [6], 'kernel': [4], 'stride':[cnstnt.CNN_STRIDE]}
 n_class = -1 #automatically sets up on Step 2
 n_mels = [128] #n_feats
 dropout = [0.1]
@@ -133,7 +133,8 @@ epochs = [2]
 ##############################################################################
 #Make sure that assumed-path-to-desktop exists
 if not os.path.exists(desktop_path):
-    print(f"ERROR: I assumed the path to your desktop was this {desktop_path}"
+    print(cnstnt.R + "ERROR: " + cnstnt.W, end='')
+    print(f"I assumed your desktop's path was {desktop_path}"
           ", but it seems I am incorrect. Can you please fix it? Thanks.")
     sys.exit()
 

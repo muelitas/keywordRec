@@ -71,8 +71,8 @@ def merge_csvs(k_words, datasets, final_csv, Case):
                 _, text, duration = line.strip().split('\t')
                 total_time += float(duration)/1000 #(/1000) to convert to secs
                 F.write(line)
-                counter += (idx + 1)
                 
+            counter += (idx + 1)
             f.close()
             print(f"'{csv.split('/')[-1]}' has been added to "
                   f"'{final_csv.split('/')[-1]}'")
