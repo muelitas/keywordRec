@@ -123,41 +123,19 @@ def get_custom_chars(manual_chars):
     
     return chars
 
-def get_mappings(dicts, other_chars, manual_chars):
+def get_mappings(datasets, other_chars, manual_chars):
     '''Returns IPA to Char, Char to IPA, Char to Int and Int to Char 
     dictionaries'''
     # Get a unique list of IPA phonemes present in our dictionaries. Only from
     # those dictionaries that we wish to use
     IPA_phones = []
-    if dicts['latine']['use_dict']:
-        latine_words = pickle.load(open(dicts['latine']['path'], "rb" ))
-        for phonemes in list(latine_words.values()):
-            for ph in phonemes.split(' '):
-                if ph not in IPA_phones:
-                    IPA_phones.append(ph)
-                
-    if dicts['spain']['use_dict']:
-        spain_words = pickle.load(open(dicts['spain']['path'], "rb" ))
-        for phonemes in list(spain_words.values()):
-            for ph in phonemes.split(' '):
-                if ph not in IPA_phones:
-                    IPA_phones.append(ph)
-         
-    # TODO
-    # if dicts['english']['use_dict']:
-    #     english_words = pickle.load(open(dicts['english']['path'], "rb" ))
-    #     for phonemes in list(english_words.values()):
-    #         for ph in phonemes.split(' '):
-    #             if ph not in IPA_phones:
-    #                 IPA_phones.append(ph)
-                    
-    # if dicts['sc_engl']['use_dict']:
-    #     sc_words = pickle.load(open(dicts['sc_engl']['path'], "rb" ))
-    #     for phonemes in list(sc_words.values()):
-    #         for ph in phonemes.split(' '):
-    #             if ph not in IPA_phones:
-    #                 print(ph)
-    #                 IPA_phones.append(ph)
+    for dataset in datasets:
+        if dataset['use_dataset']:
+            words_in_dict = pickle.load(open(dataset['dict'], "rb" ))
+            for phonemes in list(words_in_dict.values()):
+                for ph in phonemes.split(' '):
+                    if ph not in IPA_phones:
+                        IPA_phones.append(ph)
                 
     IPA_phones = sorted(IPA_phones)
     
@@ -187,36 +165,36 @@ def get_mappings(dicts, other_chars, manual_chars):
             
     return ipa2char, char2ipa, int2char, char2int, idx+1
 
-def TS_create_csv(TS_data, phones_dict):
+def TS_create_csv(dataset):
     '''Iterates through lines in {transcript} and creates 2 transcripts
     (train & dev) that contain three columns: pt_full_path, audio's text and
     audio's duration. It also translates each word in the transcripts into a
     set of IPA phonemes'''
     #Get dictionary of words and their phoneme representation
-    dict_words = pickle.load(open(phones_dict, "rb" ))
+    dict_words = pickle.load(open(dataset['dict'], "rb" ))
     
     #Grab all lines from transcript
-    f = open(TS_data['transcript'], 'r')
+    f = open(dataset['transcript'], 'r')
     lines = f.readlines()
     f.close()
     
     #If desired number of audios to use exceeds available audios, give warning
-    if((TS_data['num'] != None) and (TS_data['num'] >= len(lines))):
-        print(f"\nWARNING: {TS_data['num']} is out of range for TS's dataset."
+    if((dataset['num'] != None) and (dataset['num'] >= len(lines))):
+        print(f"\nWARNING: {dataset['num']} is out of range for TS's dataset."
               " I am setting 'num' equal to 'None'. This will give you all "
               "the audios in the Dataset.")
-        TS_data['num'] = None
+        dataset['num'] = None
     
     #Determine how many samples I will need for validation
-    num = len(lines) if TS_data['num'] == None else TS_data['num']
-    dev_split = int(TS_data['splits'][1] * num)
+    num = len(lines) if dataset['num'] == None else dataset['num']
+    dev_split = int(dataset['splits'][1] * num)
     
     #No need to shuffle here. I shuffled back when I merged TTS and gTTS and
     #am shuffling in Batch Sampler.
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
-    f = open(TS_data['train_csv'], 'w')
-    for item in lines[dev_split:TS_data['num']]:
+    f = open(dataset['train_csv'], 'w')
+    for item in lines[dev_split:dataset['num']]:
         wav_path, word, duration = item.split('\t')
         phs_seq = dict_words[word] #phonemes translation of word
         phs_seq = phs_seq.replace(' ', '_')
@@ -224,7 +202,7 @@ def TS_create_csv(TS_data, phones_dict):
     f.close()
     
     #Get validation samples; save tensor paths and their phonemes in {dev_csv}
-    f = open(TS_data['dev_csv'], 'w')
+    f = open(dataset['dev_csv'], 'w')
     for item in lines[:dev_split]:
         wav_path, word, duration = item.split('\t')
         phs_seq = dict_words[word] #phonemes translation of word
@@ -232,29 +210,29 @@ def TS_create_csv(TS_data, phones_dict):
         f.write(wav_path + '\t' + phs_seq + '\t' + duration)
     f.close()
     
-    print(f"\nThe files '{TS_data['train_csv'].split('/')[-1]}' and "
-          f"'{TS_data['dev_csv'].split('/')[-1]}' have been created; "
-          f"{len(lines[dev_split:TS_data['num']])} and {dev_split}"
+    print(f"\nThe files '{dataset['train_csv'].split('/')[-1]}' and "
+          f"'{dataset['dev_csv'].split('/')[-1]}' have been created; "
+          f"{len(lines[dev_split:dataset['num']])} and {dev_split}"
           " lines have been added to each file respectively.")
 
-def KA_create_csv(KA_data, phones_dict):
+def KA_create_csv(dataset):
     '''Iterates through lines in {transcript} and creates 2 transcripts
     (train & dev) that contain three columns: pt_full_path, audio's text and
     audio's duration. It also translates each word in the transcripts into a
     set of IPA phonemes'''
     #Get dictionary of words and their phoneme representation
-    dict_words = pickle.load(open(phones_dict, "rb" ))
+    dict_words = pickle.load(open(dataset['dict'], "rb" ))
     #Grab all lines from transcript
-    f = open(KA_data['transcript'], 'r')
+    f = open(dataset['transcript'], 'r')
     lines = f.readlines()
     f.close()
     #Determine how many samples I will need for validation
-    dev_split = int(KA_data['splits'][1] * len(lines))
+    dev_split = int(dataset['splits'][1] * len(lines))
     
     #BTW, no need to shuffle. I am shuffling in dataloaders
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
-    f = open(KA_data['train_csv'], 'w')
+    f = open(dataset['train_csv'], 'w')
     for item in lines[dev_split:]:
         pt_path, old_sentence, duration = item.split('\t')
         new_sentence = []
@@ -268,7 +246,7 @@ def KA_create_csv(KA_data, phones_dict):
     f.close()
     
     #Get validation samples; save tensor paths and their phonemes in {dev_csv}
-    f = open(KA_data['dev_csv'], 'w')
+    f = open(dataset['dev_csv'], 'w')
     for item in lines[:dev_split]:
         pt_path, old_sentence, duration = item.split('\t')
         new_sentence = []
@@ -281,8 +259,8 @@ def KA_create_csv(KA_data, phones_dict):
         f.write(pt_path + '\t' + ' '.join(new_sentence) + '\t' + duration)
     f.close()
     
-    print(f"\nThe files '{KA_data['train_csv'].split('/')[-1]}' and "
-          f"'{KA_data['dev_csv'].split('/')[-1]}' have been created; "
+    print(f"\nThe files '{dataset['train_csv'].split('/')[-1]}' and "
+          f"'{dataset['dev_csv'].split('/')[-1]}' have been created; "
           f"{len(lines[dev_split:])} and {dev_split}"
           " lines have been added to each file respectively.")
     
@@ -395,7 +373,7 @@ def LS_create_csv(LS_data, phones_dict):
           f"{len(lines[dev_split:LS_data['num']])} and {dev_split}"
           " lines have been added to each file respectively.")
 
-def TS_check(k_words, transcript, phones_dict):
+def TS_check(k_words, dataset):
     '''Keep track of how many times each keyword appears in {transcript}.
     Also, determine if all words in {transcript} exist in our dictionary
     {phones_dict}. If some word(s) don't exist, flag and notify.'''
@@ -405,13 +383,13 @@ def TS_check(k_words, transcript, phones_dict):
         kword_dict[k_word] = 0
         
     #Get the list of words that are in our phonemes-dictionary
-    dict_words = pickle.load(open(phones_dict, "rb" ))
+    dict_words = pickle.load(open(dataset['dict'], "rb" ))
     words_in_dict = list(dict_words.keys())
     words_not_in_dict, found_here =  [], []
     del dict_words
     
-    with open(transcript, 'r') as f:
-        for line in f:
+    with open(dataset['transcript'], 'r') as transcr:
+        for line in transcr:
             word = line.split('\t')[1]
             #If word is in k_words, add number of instances
             if word in k_words:
@@ -423,25 +401,22 @@ def TS_check(k_words, transcript, phones_dict):
                 found_here.append(line)
                 
     #Display number of instances found for each keyword
-    print(f"\nIn '{transcript}', I found:")
+    print(f"\nIn '{dataset['transcript']}', I found:")
     for k,v in kword_dict.items():
         print(f"\t{v} instances of the word '{k}'")
     
     if len(words_not_in_dict) != 0:
         print(f"\tI also found {len(words_not_in_dict)} words that are not in"
                " our phonemes-dictionary. Such words are:")
-        print("\nTo add these words to your dict., use run_09/spanish_dict")
         
         for idx, w in enumerate(words_not_in_dict):
             print(f"\t\t- {w} found here {found_here[idx]}")
             
-        print("\nHere are the words in a 'list' format, this way you can copy "
-              f"and paste: {words_not_in_dict}")
     else:
-        print("\nAll words are in our phonemes-dictionary. No manual additions "
-              "needed for this dataset.")
+        print("\nAll words are in our dataset's dictionary. No manual "
+              "additions needed for this dataset.")
 
-def KA_check(k_words, transcript, phones_dict):
+def KA_check(k_words, dataset):
     '''Keep track of how many times each keyword appears in {transcript}.
     Also, determine if all words in {transcript} exist in our dictionary
     {phones_dict}. If some word(s) don't exist, flag and notify.'''
@@ -451,13 +426,13 @@ def KA_check(k_words, transcript, phones_dict):
         kword_dict[k_word] = 0
         
     #Get the list of words that are in our phonemes-dictionary
-    dict_words = pickle.load(open(phones_dict, "rb" ))
+    dict_words = pickle.load(open(dataset['dict'], "rb" ))
     words_in_dict = list(dict_words.keys())
     words_not_in_dict, found_here =  [], []
     del dict_words
     
-    with open(transcript, 'r') as f:
-        for line in f:
+    with open(dataset['transcript'], 'r') as transcr:
+        for line in transcr:
             sentence = line.split('\t')[1]
             words = sentence.split(' ')
             for word in words:
@@ -471,23 +446,19 @@ def KA_check(k_words, transcript, phones_dict):
                     found_here.append(line)
                 
     #Display number of instances found for each keyword
-    print(f"\nIn '{transcript}', I found:")
+    print(f"\nIn '{dataset['transcript']}', I found:")
     for k,v in kword_dict.items():
         print(f"\t{v} instances of the word '{k}'")
     
     if len(words_not_in_dict) != 0:
         print(f"\tI also found {len(words_not_in_dict)} words that are not in"
                " our phonemes-dictionary. Such words are:")
-        print("\nTo add these words to your dict., use run_09/spanish_dict")
         
         for idx, w in enumerate(words_not_in_dict):
             print(f"\t\t- {w} found here {found_here[idx]}")
-            
-        print("\nHere are the words in a 'list' format, this way you can copy "
-              f"and paste: {words_not_in_dict}")
     else:
-        print("\nAll words are in our phonemes-dictionary. No manual additions "
-              "needed for this dataset.")
+        print("\nAll words are in our dataset's dictionary. No manual additions"
+              " needed for this dataset.")
  
 def TI_check(k_words, transcript, phones_dict):
     '''Keep track of how many times each keyword appears in {transcript}.
@@ -601,8 +572,8 @@ def SC_check_and_create_csv(k_words, SC, phones_dict):
         
     if SC['num'] % 35 != 0:
         SC['num'] -= SC['num'] % 35
-        print("\tNOTE: 'num' is not a multiple of 35. I am setting equal to "
-              f"{SC['num']} to keep dataset balanced")
+        print("\tNOTE: 'num' is not a multiple of 35. I am setting it equal "
+              f"to {SC['num']}, to keep dataset balanced")
         
     #To keep track of the number of instances for each key word
     kword_dict = {}
@@ -687,27 +658,24 @@ def SC_check_and_create_csv(k_words, SC, phones_dict):
     print(f"\tFile '{SC['dev_csv'].split('/')[-1]}' has been created. It "
           f"has {dev_split} lines.")
     print("Finished Processing Speech Commands...\n")
-
-def preprocess_data(gt_csvs_folder, k_words, TS_data, KA_data, datasets,
-                    train_csv, dev_csv, dicts):
-    #Check if gt folder exists
-    if not os.path.isdir(gt_csvs_folder):
-        os.mkdir(gt_csvs_folder)
-        
-    # Make sure gt folder is empty
-    if len(os.listdir(gt_csvs_folder)) != 0:
-        delete_contents(gt_csvs_folder)
     
-    #Check that all words in dataset(s) are in our phonemes dictionaries, then, 
-    #create custom csvs where each word is translated to IPA phonemes.
-    if TS_data['use_dataset']:
-        TS_check(k_words, TS_data['transcript'], dicts['latine']['path'])
-        TS_create_csv(TS_data, dicts['latine']['path'])  
-        
-    if KA_data['use_dataset']:
-        KA_check(k_words, KA_data['transcript'], dicts['spain']['path'])
-        KA_create_csv(KA_data, dicts['spain']['path'])
+def dataset_create_csv(k_words, dataset):
+    '''Since datasets are formatted in a different way, we have to iterate
+    through each of them differently. Thus, we determine which dataset we are
+    dealing with and run its respective functions. These functions check that
+    all words are in the dataset's dictionary and create custom csvs where
+    each word is translated to IPA phonemes.'''
     
+    if dataset['dataset_ID'] == 'TS':
+        TS_check(k_words, dataset)
+        TS_create_csv(dataset)
+    elif dataset['dataset_ID'] == 'KA':
+        KA_check(k_words, dataset)
+        KA_create_csv(dataset)
+    else:
+        print("ERROR: I don't know which dataset we are dealing with. Please"
+              " check your datasets' IDs.")
+        sys.exit()
     # TODO
     # if TI_data['use_dataset']:
     #     TI_check(k_words, TI_data['transcript'], dicts['english']['path'])
@@ -720,8 +688,22 @@ def preprocess_data(gt_csvs_folder, k_words, TS_data, KA_data, datasets,
     # if SC_data['use_dataset']:
     #     SC_check_and_create_csv(k_words, SC_data, dicts['sc_engl']['path'])
     
-    #Merge csvs of interest in {train_csv} and {dev_csv}. Determine duration
-    #of each audio and keep it in transcript. Check that all audios have the
-    #desired sample rate.
+
+def preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv):
+    #Check if gt folder exists
+    if not os.path.isdir(gt_csvs_folder):
+        os.mkdir(gt_csvs_folder)        
+        
+    # Make sure gt folder is empty
+    if len(os.listdir(gt_csvs_folder)) != 0:
+        delete_contents(gt_csvs_folder)
+    
+    #Create csv file for each dataset that we wish to use
+    for dataset in datasets:
+        if dataset['use_dataset']:
+            dataset_create_csv(k_words, dataset)
+        
+    #Merge csvs of interest in {train_csv} and {dev_csv}.
     merge_csvs(datasets, train_csv, 'train')
     merge_csvs(datasets, dev_csv, 'dev')
+    

@@ -9,6 +9,7 @@
 import copy 
 import gc
 import os
+from pathlib import Path
 import pickle
 import random
 from sklearn.model_selection import ParameterGrid
@@ -35,8 +36,8 @@ PREPROCESSING = True #preprocessing, get transcripts ready
 FIND_LR = False #find best learning rate
 TRAIN = True #train and validate!
 
-curr_dir = os.path.abspath(os.getcwd())
-logs_folder = curr_dir + '/dummy/stage1'
+desktop_path = str(Path.home()) + '/Desktop'
+logs_folder = desktop_path + '/dummy/stage1'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 checkpoint_path = logs_folder + '/checkpoint.tar'
@@ -44,13 +45,10 @@ checkpoint_path = logs_folder + '/checkpoint.tar'
 ipa2char, char2ipa, char2int, int2char, blank_label = {}, {}, {}, {}, 0
 
 #PREPROCESSING-----------------------------------------------------------------
-#TODO merge 'dicts' into '_data' dictionaries
 #TODO change 'latine' to 'ts_dict'
 #TODO change 'spain' to 'ka_dict'
-root = '/media/mario/audios/dict'
-dicts = {'latine': {'path': root + '/latine.pickle', 'use_dict': True},
-         'spain': {'path': root + '/spain.pickle', 'use_dict': True}}
-gt_csvs_folder = curr_dir + '/gt'
+root_dicts = '/media/mario/audios/dict'
+gt_csvs_folder = desktop_path + '/gt'
 k_words = ['cero', 'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 # k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
@@ -58,7 +56,9 @@ k_words = ['cero', 'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
+    'dataset_ID': 'TS',
     'use_dataset': True,
+    'dict': root_dicts + '/latine.pickle',
     'transcript': '/media/mario/audios/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
@@ -68,7 +68,9 @@ TS_data = {
 
 #Kaggle's variables and paths
 KA_data = {
+    'dataset_ID': 'KA',
     'use_dataset': True,
+    'dict': root_dicts + '/spain.pickle',
     'transcript': '/media/mario/audios/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_dev.csv',
@@ -106,17 +108,22 @@ epochs = [2]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
+#Make sure that assumed-path-to-desktop exists
+if not os.path.exists(desktop_path):
+    print(f"ERROR: I assumed the path to your desktop was this {desktop_path}"
+          ", but it seems I am incorrect. Can you please fix it? Thanks.")
+    sys.exit()
+
 #If logs_folder exists, ask if okay to overwrite; otherwise, create it
 check_folder(logs_folder)
    
 #Get IPA to Char, Char to IPA, Char to Int and Int to Char dictionaries
-ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings(dicts,
+ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings(datasets,
     other_chars, manual_chars)
     
 if PREPROCESSING: #------------------------------------------------------------
     #In a nutchell: check audios and create csvs for training
-    preprocess_data(gt_csvs_folder, k_words, TS_data, KA_data, datasets,
-                    train_csv, dev_csv, dicts)
+    preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv)
     
 if TRAIN or FIND_LR: #--------------------------------------------------------
     hyper_params = {"gru_dim": GRU['dim'], "gru_hid_dim": GRU['hid_dim'],
