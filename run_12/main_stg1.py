@@ -35,8 +35,9 @@ PREPROCESSING = True #preprocessing, get transcripts ready
 FIND_LR = False #find best learning rate
 TRAIN = True #train and validate!
 
-desktop_path = str(Path.home()) + '/Desktop'
-logs_folder = desktop_path + '/dummy/stage1'
+desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
+#Nomenclature: K=1000; E=epochs
+logs_folder = desktop_path + '/SC_14K_50E/stage1'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 checkpoint_path = logs_folder + '/checkpoint.tar'
@@ -45,19 +46,18 @@ k_words_path = logs_folder + '/k_words_instances.pickle'
 ipa2char, char2ipa, char2int, int2char, blank_label = {}, {}, {}, {}, 0
 
 #PREPROCESSING-----------------------------------------------------------------
-root_dicts = '/media/mario/audios/dict'
+data_root = '/media/mario/audios' #root for dictionaries and transcripts
 gt_csvs_folder = desktop_path + '/gt'
-k_words = ['cero', 'uno', 'dos', 'tres', 'cinco', 'número', 'números']
-# k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
-#           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
+k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
+          'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 # SR = 16000 # All audios are 16000 due to audios2spctrgrms.py files
 
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': True,
-    'dict': root_dicts + '/ts_dict.pickle',
-    'transcript': '/media/mario/audios/spctrgrms/clean/TS/transcript.txt',
+    'use_dataset': False,
+    'dict': data_root + '/dict/ts_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
@@ -67,16 +67,39 @@ TS_data = {
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': True,
-    'dict': root_dicts + '/ka_dict.pickle',
-    'transcript': '/media/mario/audios/spctrgrms/clean/KA/transcript.txt',
+    'use_dataset': False,
+    'dict': data_root + '/dict/ka_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_dev.csv',
     'splits': [0.9, 0.1]
 }
 
+#TIMIT's variables and paths
+TI_data = {
+    'dataset_ID': 'TI',
+    'use_dataset': False,
+    'dict': data_root + '/dict/ti_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TI/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ti_train.csv',
+    'dev_csv': gt_csvs_folder + '/ti_dev.csv',
+    'splits': [0.9, 0.1]
+}
+
+#Speech Commands' variables and paths
+SC_data = {
+    'dataset_ID': 'SC',
+    'use_dataset': True,
+    'dict': data_root + '/dict/sc_dict.pickle',
+    'src_dir': data_root + '/spctrgrms/clean/SC',
+    'train_csv': gt_csvs_folder + '/sc_train.csv',
+    'dev_csv': gt_csvs_folder + '/sc_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': 14000 #Set equal to None if you want to use all audios
+}
+
 #Specify which datasets you want to use for training
-datasets = [TS_data, KA_data]
+datasets = [TS_data, KA_data, TI_data, SC_data]
 #Location of "final" csvs, the ones that will be used to train and validate
 train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'
@@ -102,7 +125,7 @@ n_mels = [128] #n_feats
 dropout = [0.1]
 learning_rate = [1e-4]
 batch_size = [2]
-epochs = [1]
+epochs = [50]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
