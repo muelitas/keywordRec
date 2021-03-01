@@ -153,8 +153,8 @@ driver.close() #if you want to close tab, use driver.quit() instead
 #Get list of downloaded audios
 mp3_audios = sorted(os.listdir(folder_mp3))
 
-#Access MP3 download folder and rename files (add leading zero to minutes, 
-# seconds, hours, day and month)
+#Access download folder and rename files (add leading zero to hours, minutes,
+# seconds, day and month). This will give me order of downloads.
 for audio in mp3_audios:
     src = folder_mp3 + '/' + audio
     digits = audio.split('_VoiceText_')[1][:-4]
