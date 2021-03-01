@@ -3,7 +3,11 @@
     Author: Mario Esparza
     Date: 03/01/2021
     
-    Iterate through files in 
+    Iterate through all .TXT files in 'TRAIN' or 'TEST' of TIMIT's corpus.
+    Grab text from each .txt file; determine respective .wav file; determine
+    audios duration in miliseconds; calculate (and save) spectrogram; and
+    generate a transcript with three columns: path of spectrogram, text said
+    in such, and audio's duration.
     
 ***************************************************************************''' 
 from glob import glob
@@ -42,13 +46,12 @@ if len(os.listdir(save_dir)) != 0:
         shutil.rmtree(save_dir)
         os.mkdir(save_dir)
 
-#TODO combine the two outer-loops below
 #Get all .TXT paths present in {timit_dir}
 txt_paths = []
 txt_paths += glob(timit_dir + '/*/*/*.TXT')
+txt_paths = sorted(txt_paths)
 
-#Iterate throgh .TXT files ...
-#TODO
+#Iterate throgh .TXT files
 print("Iterating through .TXT paths...")
 transcr = open(new_transcr_path, 'w')
 counter = 0
@@ -66,6 +69,8 @@ for idx, txt_path in enumerate(txt_paths):
     line = line.replace(':', '')
     line = line.replace(';', '')
     line = line.replace('-', ' ')
+    line = line.replace('"', ' ')
+    line = line.replace('!', ' ')
     line = line.replace('mr ', 'mister ')
     line = line.replace('mrs ', 'missus ')    
     
@@ -79,10 +84,11 @@ for idx, txt_path in enumerate(txt_paths):
     spctrgrm = MelSpec(sample_rate=SR, n_mels=mels)(wave)
     spctrgrm = normalize_0_to_1(spctrgrm)
     
-    #Remove instances in which line has 2, 3 or 4 contiguous spaces
+    #Remove contiguous white spaces as well as ending or starting ones
     line = line.replace('    ', ' ')
     line = line.replace('   ', ' ')
     line = line.replace('  ', ' ')
+    line = line.strip()
     
     #Save spec path, text and audios duration in new transcript
     audio_dur = int(wave.size()[1] / sr_coeff) # audio's duration
@@ -92,9 +98,14 @@ for idx, txt_path in enumerate(txt_paths):
     if idx%500 == 0:
         print(f"{idx+1}/{len(txt_paths)} txt files have been processed")
     
-    if idx == 5:
-        break
-    
 transcr.close()
 print(" ...Finished iterating through .TXT paths. Spectrograms and "
       f"transcript have been saved here: {save_dir}")
+
+'''Use this to fix any words that have an empty phoneme:
+    path_to_dict = '/home/mario/Desktop/ctc_data/dict/ti_all_test_dict.pickle'
+    Dictionary = pickle.load(open(path_to_dict, "rb" ))
+    print(Dictionary["lunchroom"]) #this statement shows the extra space
+    Dictionary["lunchroom"] = 'l ʌ n tʃ ɹ uː m'
+    print(Dictionary["lunchroom"])
+    pickle.dump(Dictionary, open(path_to_dict, "wb"))'''
