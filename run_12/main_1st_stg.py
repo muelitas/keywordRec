@@ -134,7 +134,7 @@ n_mels = [128] #n_feats
 dropout = [0.1]
 learning_rate = [1e-4]
 batch_size = [2]
-epochs = [2]
+epochs = [4]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -245,7 +245,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
                     break
                 
             local_best_per = metrics.get_best_cer()
-            best_pers.append(local_best_per)    
+            best_pers.append(local_best_per)
             
             msg = MSG + f"Best PER: {local_best_per:.4f} on Epoch "
             msg += f"{metrics.pers.index(local_best_per) + 1}"

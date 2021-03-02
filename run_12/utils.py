@@ -96,31 +96,49 @@ def delete_contents(this_dir):
             print("Please try manually. Then, re-run this code.\n")
             sys.exit()
 
-def plot_and_save(dev_losses, train_losses, cers, lrs, run, logs_folder):
-    '''In one figure, plot and save dev_losses, train_losses and dev_cers; in
-    a different figure, plot and save learning rate progress.'''
-    fig_name = logs_folder + f'/zRun_{str(run).zfill(3)}.png'
+def plot_and_save(dev_losses, train_losses, pers, lrs, run, logs_folder):
+    '''In figure one, plot and save dev_losses vs train_losses. In figure two,
+    plot and save validation PERs. In figure three, plot and save progress of
+    learning rate.'''
+    file_name = f'/zRun_{str(run).zfill(3)}'
+    
+    #Validation and Training Losses
+    fig_name = logs_folder + file_name + '.png'
     fig, ax = plt.subplots()  # a figure with a single Axes
-    ax.set_title(f'Run {run}: Valid Loss, Train Loss and PER')
+    ax.set_title(f'Run {run}: Valid Loss vs. Train Loss')
     x = list(range(1, len(dev_losses)+1))
     ax.plot(x, dev_losses, 'b', label="Validation Loss")
     ax.plot(x, train_losses, 'r', label="Train Loss")
-    ax.plot(x, cers, 'g--', label="Phoneme Error Rate")
     ax.grid(True)
     ax.set_xlabel('Epochs')
-    ax.set_ylabel('Metrics')
+    ax.set_ylabel('Losses')
+    ax.legend(loc='upper center', shadow=True, fontsize='small')
+    plt.savefig(fig_name)
+    plt.show()
+    
+    #Validation Phoneme Error Rates
+    fig_name = logs_folder + file_name + '_PER.png'
+    fig, ax = plt.subplots()  # a figure with a single Axes
+    ax.set_title(f'Run {run}: Phoneme Error Rate (PER)')
+    x = list(range(1, len(pers)+1))
+    ax.plot(x, pers, 'g--', label="Phoneme Error Rate")
+    ax.grid(True)
+    ax.set_xlabel('Epochs')
+    ax.set_ylabel('PERs')
+    ax.legend(loc='upper center', shadow=True, fontsize='small')
     plt.savefig(fig_name)
     plt.show()
     
     #Learning Rate Progress
-    fig_name = logs_folder + f'/zRun_{str(run).zfill(3)}_LR.png'
+    fig_name = logs_folder + file_name + '_LR.png'
     fig, ax = plt.subplots()  # a figure with a single Axes
-    ax.set_title(f'Run {str(run).zfill(3)}: Learning Rate Progress')
+    ax.set_title(f'Run {run}: Learning Rate Progress')
     x = list(range(1, len(lrs)+1))
     ax.plot(x, lrs, 'g--', label="Learning Rate")
     ax.grid(True)
     ax.set_xlabel('Epochs')
     ax.set_ylabel('Learning Rates')
+    ax.legend(loc='upper center', shadow=True, fontsize='small')
     plt.savefig(fig_name)
     plt.show()
     
