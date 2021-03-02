@@ -12,7 +12,7 @@ import random
 import string
 import sys
 
-from utils import delete_contents, log_message
+from utils import delete_contents, log_message, error, warn
 
 def check_folder(this_path):
     '''If {this_path} exists, ask if okay to overwrite; otherwise create it'''
@@ -98,7 +98,7 @@ def get_custom_chars(manual_chars):
     
     return chars
 
-def get_mappings(datasets, other_chars, manual_chars):
+def get_mappings(datasets, other_chars, manual_chars, other_dicts):
     '''Returns IPA to Char, Char to IPA, Char to Int and Int to Char 
     dictionaries'''
     # Get a unique list of IPA phonemes present in our dictionaries. Only from
@@ -111,7 +111,16 @@ def get_mappings(datasets, other_chars, manual_chars):
                 for ph in phonemes.split(' '):
                     if ph not in IPA_phones:
                         IPA_phones.append(ph)
-                
+    
+    #If outside-of-datasets-dictionaries want to be used
+    if len(other_dicts)!= 0:
+        for Dict in other_dicts:
+            words_in_dict = pickle.load(open(Dict, "rb" ))
+            for phonemes in list(words_in_dict.values()):
+                for ph in phonemes.split(' '):
+                    if ph not in IPA_phones:
+                        IPA_phones.append(ph)
+    
     IPA_phones = sorted(IPA_phones)
     
     #Get list of characters that will replace IPA phonemes in csvs
@@ -586,6 +595,7 @@ def SC_check_and_create_csv(dataset, k_words_path):
         F.close()
     
     #Shuffle lines that will be used for training and validation
+    random.seed(7)
     random.shuffle(new_lines)
     
     #Determine how many samples I will need for validation
@@ -669,8 +679,8 @@ def dataset_create_csv(k_words, dataset, k_words_path):
     elif dataset['dataset_ID'] == 'SC': #Speech Commands
         SC_check_and_create_csv(dataset, k_words_path)
     else:
-        print("ERROR: I don't know which dataset we are dealing with. Please"
-              " check your datasets' IDs.")
+        print(f"{error()} I don't know which dataset we are dealing with. "
+              "Please check your datasets' IDs.")
         
         sys.exit()
     # TODO        

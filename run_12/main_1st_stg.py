@@ -1,5 +1,5 @@
 '''/**************************************************************************
-    File: main_stg1.py
+    File: main_1st_stg.py
     Author(s): Mario Esparza, Luis Sanchez
     Date: 02/26/2021
     
@@ -25,8 +25,9 @@ from models import SpeechRecognitionModel
 from preprocessing import preprocess_data, check_folder, get_mappings
 from utils import data_processing, train, dev, Metrics, log_model_information, \
     plot_and_save, log_message, find_best_lr, BucketsSampler, CUSTOM_DATASET, \
-    log_labels, log_k_words_instances
+    log_labels, log_k_words_instances, error, save_chckpnt
 
+#TODO, add labels to red and blue in loss plots
 #TODO implement Red color to error messages R = '\033[31m'
 #TODO implement Orange color to warning messages O = '\033[33m'
 #Comment this from time to time and check warnings are the same
@@ -36,15 +37,15 @@ warnings.filterwarnings("ignore")
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
 PREPROCESSING = True #preprocessing, get transcripts ready
 FIND_LR = False #find best learning rate
-TRAIN = False #train and validate!
+TRAIN = True #train and validate!
 
-desktop_path = str(Path.home()) + '/Desktop/ctc_runs5'
+desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = '/media/mario/audios' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = desktop_path + '/dummy/stage1'
+logs_folder = desktop_path + '/dummy/first_stage'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
-checkpoint_path = logs_folder + '/checkpoint.tar'
+chckpnt_path = logs_folder + '/checkpoint.tar'
 k_words_path = logs_folder + '/k_words_instances.pickle'
 #Used to determine the labels and translations between them
 ipa2char, char2ipa, char2int, int2char, blank_label = {}, {}, {}, {}, 0
@@ -58,7 +59,7 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
@@ -81,7 +82,7 @@ KA_data = {
 #TIMIT's variables and paths
 TI_data = {
     'dataset_ID': 'TI',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ti_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TI/transcript.txt',
     'train_csv': gt_csvs_folder + '/ti_train.csv',
@@ -100,6 +101,12 @@ SC_data = {
     'splits': [0.9, 0.1],
     'num': 200 #Set equal to None if you want to use all audios
 }
+'''Specify which dictionaries should be included that weren't included from
+the chosen datasets. For example, if you chose to use KA, the run will only
+have 38 classes (number of unique phonemes in KA). But if you want to train
+also in english phonemes, you'll have to specify the path or paths to english
+dictionary(ies).'''
+other_dicts = []
 
 #Specify which datasets you want to use for training
 datasets = [TS_data, KA_data, TI_data, SC_data]
@@ -133,8 +140,7 @@ epochs = [2]
 ##############################################################################
 #Make sure that assumed-path-to-desktop exists
 if not os.path.exists(desktop_path):
-    print(cnstnt.R + "ERROR: " + cnstnt.W, end='')
-    print(f"I assumed your desktop's path was {desktop_path}"
+    print(f"{error()} I assumed your desktop's path was {desktop_path}"
           ", but it seems I am incorrect. Can you please fix it? Thanks.")
     sys.exit()
 
@@ -143,7 +149,7 @@ check_folder(logs_folder)
    
 #Get IPA to Char, Char to IPA, Char to Int and Int to Char dictionaries
 ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings(datasets,
-    other_chars, manual_chars)
+    other_chars, manual_chars, other_dicts)
     
 if PREPROCESSING: #------------------------------------------------------------
     #In a nutchell: check audios and create csvs for training
@@ -174,8 +180,8 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     dev_dataset = CUSTOM_DATASET(dev_csv, ipa2char)
     
     #To keep track of best metrics, best model and best hyper params.
-    best_cers, global_best_cer, best_model_wts, best_hparams = [], 2.0, {}, {}
-    optimizer_state_dict = {}
+    best_pers, global_best_per, best_model_wts, best_hparams = [], 2.0, {}, {}
+    optimizer_state_dict, run_num, epoch_num = {}, '', ''
     
     start_time = time.time()
     for idx, hparams in enumerate(list(ParameterGrid(hyper_params))):
@@ -223,29 +229,33 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
                 dev(model, device, dev_loader, criterion, epoch,
                     train_log, blank_label, int2char, char2ipa, metrics)
                 
+                #If current PER is lower than best global PER, copy the model
+                epoch_per = metrics.pers[-1]
+                if epoch_per < global_best_per:
+                    global_best_per = epoch_per
+                    best_model_wts = copy.deepcopy(model.state_dict())
+                    # optimizer_state_dict = copy.deepcopy(optimizer.state_dict())
+                    best_hparams = hparams
+                    run_num = str(idx+1)
+                    epoch_num = str(epoch)
+                
                 stop, stop_msg = metrics.should_we_stop(epoch, early_stop)
                 if stop: #Early Stop
                     MSG += stop_msg
                     break
                 
-            #Get best cer of this run; if best than all runs, copy the model
-            local_best_cer = metrics.get_best_cer()
-            best_cers.append(local_best_cer)
-            if local_best_cer < global_best_cer:
-                global_best_cer = local_best_cer
-                best_model_wts = copy.deepcopy(model.state_dict())
-                optimizer_state_dict = copy.deepcopy(optimizer.state_dict())
-                best_hparams = hparams
+            local_best_per = metrics.get_best_cer()
+            best_pers.append(local_best_per)    
             
-            msg = MSG + f"Best CER: {local_best_cer:.4f} on Epoch "
-            msg += f"{metrics.cers.index(local_best_cer) + 1}"
+            msg = MSG + f"Best PER: {local_best_per:.4f} on Epoch "
+            msg += f"{metrics.pers.index(local_best_per) + 1}"
             log_message(msg + '\n\n', train_log, 'a', True)
             
             #Log model summary, # of parameters, hyper parameters and more
             log_model_information(miscellaneous_log, model, hparams)
                 
             #Plot losses, cers, learning rates and save as figures
-            plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.cers,
+            plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.pers,
                 metrics.lrs, idx+1, logs_folder)
                 
         #Delete model, collect garbage and empty CUDA memory
@@ -257,17 +267,13 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     
     if TRAIN:
         #Save weights of best model, along with its optimizer state and hparams
-        torch.save({
-            'model_state_dict': best_model_wts,
-            # 'optimizer_state_dict': optimizer_state_dict,
-            'hparams': best_hparams
-        }, checkpoint_path)
+        chckpnt_path = save_chckpnt(best_model_wts, best_hparams, chckpnt_path,
+            run_num, epoch_num)
         
         #Record "bestest" metrics, run-time, and others
-        msg = f"\nBest CER of all was {min(best_cers):.4f} on run "
-        msg += f"{best_cers.index(min(best_cers)) + 1}\n"
-        msg += f"Checkpoint has been saved here: {checkpoint_path}\n"
-        # msg += f"The number of k_words found in dev dataset is {gt_num}\n"
+        msg = f"\nBest PER of all was {min(best_pers):.4f} on run "
+        msg += f"{best_pers.index(min(best_pers)) + 1}\n"
+        msg += f"Checkpoint has been saved here: {chckpnt_path}\n"
         msg += "Are we using masking during training? 'Yes'\n"
         msg += f"In all runs, training set had {len(train_dataset)} audio files "
         msg += f"equivalent to {train_dataset.duration:.2f} seconds\n"

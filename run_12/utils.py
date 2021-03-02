@@ -24,6 +24,8 @@ from torch.utils.data import Dataset, Sampler
 import torchaudio
 from torchaudio import transforms as tforms
 
+import constants as cnstnt
+
 def log_model_information(log_file, model, hparams):
     '''Log model summary, # of parameters, hyper parameters and more'''
     original_stdout = sys.stdout # Save a reference to the original std output
@@ -99,11 +101,11 @@ def plot_and_save(dev_losses, train_losses, cers, lrs, run, logs_folder):
     a different figure, plot and save learning rate progress.'''
     fig_name = logs_folder + f'/zRun_{str(run).zfill(3)}.png'
     fig, ax = plt.subplots()  # a figure with a single Axes
-    ax.set_title(f'Run {run}: Valid Loss, Train Loss and CER')
+    ax.set_title(f'Run {run}: Valid Loss, Train Loss and PER')
     x = list(range(1, len(dev_losses)+1))
     ax.plot(x, dev_losses, 'b', label="Validation Loss")
     ax.plot(x, train_losses, 'r', label="Train Loss")
-    ax.plot(x, cers, 'g--', label="Char Error Rate")
+    ax.plot(x, cers, 'g--', label="Phoneme Error Rate")
     ax.grid(True)
     ax.set_xlabel('Epochs')
     ax.set_ylabel('Metrics')
@@ -132,34 +134,34 @@ class Metrics:
         self.train_losses = []
         self.lrs = []
         self.dev_losses = []
-        self.cers = []
+        self.pers = [] #Phoneme error rates
         self.ratio_losses = []
         
     def add_train_metrics(self, loss, lr):
-        '''Add dev loss, ratio loss and cer'''   
+        '''Add train loss and Learning Rate'''   
         self.train_losses.append(loss)
         self.lrs.append(lr)
         
-    def add_dev_metrics(self, loss, cer, ratio_loss):
-        '''Add dev loss, ratio loss and cer'''   
+    def add_dev_metrics(self, loss, per, ratio_loss):
+        '''Add dev loss, ratio loss and PER'''   
         self.ratio_losses.append(ratio_loss)
         self.dev_losses.append(loss)
-        self.cers.append(cer)
+        self.pers.append(per)
         
     def get_best_cer(self):
-        '''Grab best CER'''
-        return min(self.cers)
+        '''Grab best PER'''
+        return min(self.pers)
     
     def should_we_stop(self, epoch, early_stop):
-        """If CER doesn't improve by p% in n epochs, stop training; where 
+        """If PER doesn't improve by p% in n epochs, stop training; where 
         n = early_stop['n'] and p = (1-early_stop['p'])*100"""
         stop, msg = False, ''
         
         if(epoch >= early_stop['n']):
-            prev_cers = self.cers[-early_stop['n']:]
-            if(prev_cers[0] * early_stop['p'] - min(prev_cers[1:]) < 0.00001):
+            prev_pers = self.pers[-early_stop['n']:]
+            if(prev_pers[0] * early_stop['p'] - min(prev_pers[1:]) < 0.00001):
                 stop = True
-                msg = 'EARLY STOP due to CER | '
+                msg = 'EARLY STOP due to PER | '
             
         return stop, msg
             
@@ -533,7 +535,7 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
     dev_loss /= batches_num
     ratio_loss = dev_loss / metrics.train_losses[epoch-1]
     msg += f"Dev Avg Loss: {dev_loss:.4f} | Ratio Loss: {ratio_loss:.4f} | "
-    msg += f"Avg CER: {avg_cer:.4f} | Avg WER: {avg_wer:.4f}\n"
+    msg += f"Avg PER: {avg_cer:.4f} | Avg WER: {avg_wer:.4f}\n"
     
     log_message(msg, log_file, 'a', True)
     log_message(MSG, log_file, 'a', True)
@@ -610,7 +612,7 @@ def find_best_lr(model, loss_fn, optimizer, train_loader, init_value,
         loss = loss_fn(outputs, targets, input_lengths, label_lengths)
 
         # Crash out if loss explodes
-        if batch_num > 1 and loss > 4 * best_loss:
+        if batch_num > 1 and loss > 10 * best_loss:
             if(len(log_lrs) > 20):
                 lrs_to_plot = log_lrs[10:-2]
                 losses_to_plot = losses[10:-2]
@@ -724,3 +726,26 @@ class BucketsSampler(Sampler):
         print(f"ERROR: Audio with index {index} has a duration of "
               "{float(duration/100)} seconds. Not in the buckets' boundaries.")
         sys.exit()
+
+def error():
+    '''Prints 'ERROR' in red'''
+    return cnstnt.R + "ERROR:" + cnstnt.W
+
+def warn():
+    '''Prints 'WARNING' in orange'''
+    return cnstnt.O + "ERROR:" + cnstnt.W
+
+def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
+                     epoch_num):
+    '''Save the best models's weights and hyper parameters used for such'''
+    save_path = checkpoint_path[:-4] + f'_onRun{run_num.zfill(2)}'
+    save_path += f'onEpoch{epoch_num.zfill(3)}' + checkpoint_path[-4:]
+        
+    #This is the best model of all epochs and all runs
+    torch.save({
+        'model_state_dict': best_model_wts,
+        # 'optimizer_state_dict': optimizer_state_dict,
+        'hparams': best_hparams
+    }, save_path)
+    
+    return save_path
