@@ -3,14 +3,14 @@
     Author: Mario Esparza
     Date: 03/01/2021
     
-    Iterate through all .TXT files in 'TRAIN' or 'TEST' of TIMIT's corpus.
-    Grab text from each .txt file; determine respective .wav file; determine
-    audios duration in miliseconds; calculate (and save) spectrogram; and
-    generate a transcript with three columns: path of spectrogram, text said
-    in such, and audio's duration.
+    Iterate through lines in TIMIT's custom transcript. Grab wav path and text,
+    determine audios duration in miliseconds; calculate (and save) spectrogram;
+    and generate a new transcript with three columns: path of spectrogram,
+    text said in such, and audio's duration.
     
-***************************************************************************''' 
-from glob import glob
+    Custom transcript comes from TI_WAVs2wavs_all.py.
+    
+***************************************************************************'''
 import os
 import shutil
 import sys
@@ -28,8 +28,8 @@ def normalize_0_to_1(matrix):
     matrix = matrix.reshape(d1, d2, d3)
     return matrix
 
-timit_dir = '/media/mario/audios/TIMIT/TRAIN'
-save_dir = '/media/mario/audios/spctrgrms/clean/TI_all_train'
+old_transcr_path = '/media/mario/audios/TI_all_test/transcript.txt'
+save_dir = '/media/mario/audios/spctrgrms/clean/TI_all_test'
 new_transcr_path = save_dir + '/transcript.txt'
 SR = 16000 #desired sample rate
 mels = 128
@@ -46,58 +46,33 @@ if len(os.listdir(save_dir)) != 0:
         shutil.rmtree(save_dir)
         os.mkdir(save_dir)
 
-#Get all .TXT paths present in {timit_dir}
-txt_paths = []
-txt_paths += glob(timit_dir + '/*/*/*.TXT')
-txt_paths = sorted(txt_paths)
-
-#Iterate throgh .TXT files
-print("Iterating through .TXT paths...")
-transcr = open(new_transcr_path, 'w')
-counter = 0
+#Iterate through lines in old transcript
+print("Started processing audios...")
+old_transcr = open(old_transcr_path, 'r')
+new_transcr = open(new_transcr_path, 'w')
+lines = old_transcr.readlines()
 sr_coeff = SR / 1000 #divide by 1000 to save audio's duration in milisecs
-for idx, txt_path in enumerate(txt_paths):
-    #Grab text (phrase) from .txt file
-    txt_file = open(txt_path, 'r')
-    line = txt_file.readlines()[0].strip().lower().split(' ', 2)[-1]
-    txt_file.close()
+for idx, line in enumerate(lines):
+    #Grab wav_path and text said in such
+    wav_path, text = line.strip().split('\t')  
     
-    #Remove special characters
-    line = line.replace('.', '')
-    line = line.replace(',', '')
-    line = line.replace('?', '')
-    line = line.replace(':', '')
-    line = line.replace(';', '')
-    line = line.replace('-', ' ')
-    line = line.replace('"', ' ')
-    line = line.replace('!', ' ')
-    line = line.replace('mr ', 'mister ')
-    line = line.replace('mrs ', 'missus ')    
-    
-    #Get wav path and specify spectrogram path
-    WAV_path = txt_path[:-4] + '.WAV'
-    spctrgrm_path = save_dir + '/ti_' + str(counter).zfill(4) + '.pt'
-    counter += 1
+    #Specify spectrogram path
+    spctrgrm_path = save_dir + '/ti_' + str(idx).zfill(4) + '.pt'
     
     #Get wave; calculate and normalize spectrogram
-    wave, _ = torchaudio.load(WAV_path)
+    wave, _ = torchaudio.load(wav_path)
     spctrgrm = MelSpec(sample_rate=SR, n_mels=mels)(wave)
     spctrgrm = normalize_0_to_1(spctrgrm)
     
-    #Remove contiguous white spaces as well as ending or starting ones
-    line = line.replace('    ', ' ')
-    line = line.replace('   ', ' ')
-    line = line.replace('  ', ' ')
-    line = line.strip()
-    
     #Save spec path, text and audios duration in new transcript
     audio_dur = int(wave.size()[1] / sr_coeff) # audio's duration
-    transcr.write(spctrgrm_path + '\t' + line + '\t' + str(audio_dur) + '\n')
+    new_transcr.write(spctrgrm_path + '\t' + text + '\t' + str(audio_dur)+'\n')
     torch.save(spctrgrm, spctrgrm_path)
         
     if idx%500 == 0:
-        print(f"{idx+1}/{len(txt_paths)} txt files have been processed")
+        print(f"{idx+1}/{len(lines)} audios processed")
     
-transcr.close()
+new_transcr.close()
+old_transcr.close()
 print(" ...Finished iterating through .TXT paths. Spectrograms and "
       f"transcript have been saved here: {save_dir}")
