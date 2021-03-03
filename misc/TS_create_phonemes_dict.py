@@ -1,9 +1,9 @@
 '''/**************************************************************************
-    File: TI_create_phonemes_dict.py
+    File: TS_create_phonemes_dict.py
     Author: Mario Esparza
-    Date: 02/26/2021
+    Date: 03/02/2021
     
-    Use TIMIT's custom transcript to create a vocabulary dictionary. It creates
+    Use TTS-gTTS's custom transcript to create a vocabulary dictionary. Create
     2 different files: .txt file and .pickle file. Both contain the same info,
     however, first one is "human-friendly" (you can open it right away and see
     a word translation to phonemes). Second one is used during preprocessing.
@@ -11,20 +11,20 @@
     translating each transcript's sentence to phonemes.
     
 ***************************************************************************''' 
-import os
 import pickle
+import os
 import sys
 
 from phonemizer import phonemize
 from phonemizer.separator import Separator
 
 root = '/media/mario/audios'
-transcr_path = root + '/spctrgrms/clean/TI/transcript.txt'
-dict_txt = root + '/dict/ti_dict.txt'
-dict_pickle = root + '/dict/ti_dict.pickle'
+dict_txt = root + '/dict/ts_dict.txt'
+dict_pickle = root + '/dict/ts_dict.pickle'
+transcr_path = root + '/spctrgrms/clean/TS/transcript.txt'
 #Parameters for phonemizer
 #language 'es-la' latin-america, 'es' spain, 'en-us' USA, 'en' british
-L = 'en-us'
+L = 'es-la'
 B_E = 'espeak' #back end
 c_sep = Separator(phone='_', syllable='', word=' ') #custom separator
 
@@ -41,8 +41,8 @@ if os.path.exists(dict_pickle):
     if input().lower() != 'y':
         sys.exit()
 
-#Get vocabulary, list of unique words in TIMIT's transcript
-print("Processing TIMIT's Transcript...")
+#Get vocabulary, list of unique words in TTS-gTTS's transcript
+print("Processing TTS-gTTS's Transcript...")
 vocabulary = []
 transcr = open(transcr_path, 'r')
 for idx, line in enumerate(transcr):
@@ -95,7 +95,7 @@ print(f".pickle dictionary has been saved here {dict_pickle}")
     path_to_dict = '/home/mario/Desktop/ctc_data/dict/ti_all_test_dict.pickle'
     Dictionary = pickle.load(open(path_to_dict, "rb" ))
     print(Dictionary["lunchroom"])
-    #Then, run it together with this (with respective fix)
+    #Then, run it together with this (and respective fix)
     Dictionary["lunchroom"] = 'l ʌ n tʃ ɹ uː m'
     print(Dictionary["lunchroom"])
     pickle.dump(Dictionary, open(path_to_dict, "wb"))'''
