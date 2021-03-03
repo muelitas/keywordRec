@@ -27,9 +27,7 @@ from utils import data_processing, train, dev, Metrics, log_model_information, \
     plot_and_save, log_message, find_best_lr, BucketsSampler, CUSTOM_DATASET, \
     log_labels, log_k_words_instances, error, save_chckpnt
 
-#TODO, add labels to red and blue in loss plots
-#TODO implement Red color to error messages R = '\033[31m'
-#TODO implement Orange color to warning messages O = '\033[33m'
+#TODO check that paths exist, particularly the ones for preprocessing
 #Comment this from time to time and check warnings are the same
 warnings.filterwarnings("ignore")
 
@@ -59,19 +57,19 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 1000 #Set equal to None if you want to use all audios
+    'num': 200 #Set equal to None if you want to use all audios
 }
 
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -83,8 +81,8 @@ KA_data = {
 TI_data = {
     'dataset_ID': 'TI',
     'use_dataset': False,
-    'dict': data_root + '/dict/ti_dict.pickle',
-    'transcript': data_root + '/spctrgrms/clean/TI/transcript.txt',
+    'dict': data_root + '/dict/ti_all_train_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TI_all_train/transcript.txt',
     'train_csv': gt_csvs_folder + '/ti_train.csv',
     'dev_csv': gt_csvs_folder + '/ti_dev.csv',
     'splits': [0.9, 0.1]
@@ -127,14 +125,14 @@ FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 bucket_boundaries = sorted([2000]) #in miliseconds
 drop_last = True
 
-GRU = {'dim': [64], 'hid_dim': [64], 'layers': [2]}
-CNN1 = {'filters': [6], 'kernel': [4], 'stride':[cnstnt.CNN_STRIDE]}
+GRU = {'dim': [64], 'hid_dim': [64], 'layers': [8]}
+CNN1 = {'filters': [12], 'kernel': [4], 'stride':[cnstnt.CNN_STRIDE]}
 n_class = -1 #automatically sets up on Step 2
 n_mels = [128] #n_feats
 dropout = [0.1]
 learning_rate = [1e-4]
 batch_size = [2]
-epochs = [30]
+epochs = [2]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################

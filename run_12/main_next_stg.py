@@ -46,8 +46,8 @@ desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = '/media/mario/audios'
 
 prev_chckpt_dir = 'dummy' #Previous checkpoint folder name
-prev_chckpt_stg = 'stg1' #Previous checkpoint stage name
-new_chckpt_stg = 'stg2' #Stage name for new checkpoint
+prev_chckpt_stg = 'stg2' #Previous checkpoint stage name
+new_chckpt_stg = 'stg3' #Stage name for new checkpoint
 
 #Paths to logs
 logs_folder = pj(desktop_path, prev_chckpt_dir, new_chckpt_stg)
@@ -56,7 +56,7 @@ train_log = pj(logs_folder, 'train_logs.txt')
 
 #Paths to checkpoints (old and new)
 prev_chckpt_path = pj(desktop_path, prev_chckpt_dir, prev_chckpt_stg,
-    'checkpoint_onRun01onEpoch001.tar')
+    'checkpoint_onRun01onEpoch020.tar')
 new_chckpt_path = pj(logs_folder, 'checkpoint.tar')
 
 #TODO, implement keywords instances
@@ -74,7 +74,7 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
@@ -86,7 +86,7 @@ TS_data = {
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -143,7 +143,7 @@ bucket_boundaries = sorted([2000]) #in miliseconds
 drop_last = True
 
 #New config. for dropout? batch_size? epochs? learning_rate?
-new_hparams = {'epochs': 20, 'learning_rate': 1e-3}
+new_hparams = {'epochs': 1, 'learning_rate': 1e-3}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -193,8 +193,6 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     #Load checkpoint, weights and hyper parameters
     checkpnt = torch.load(prev_chckpt_path)
     hparams = checkpnt['hparams']
-    #In case number of classes changes
-    hparams['n_class'] = blank_label+1
     
     #If I want to use new h_params, update checkpoint's hyper parameters
     if bool(new_hparams):
@@ -216,6 +214,9 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     model.classifier[3] = nn.Linear(in_ftrs, out_ftrs)
     model = model.to(device)
     criterion = nn.CTCLoss(blank=blank_label).to(device)
+    
+    #In order to log correct information, update value for number of classes
+    hparams['n_class'] = out_ftrs
     
     if not transf_learn_all_layers:
         #net as "fixed feature extractor" (only optimize the final layer)
