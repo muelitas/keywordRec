@@ -42,7 +42,7 @@ TRAIN = True #train and validate!
 desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = '/media/mario/audios' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = desktop_path + '/dummy/first_stage'
+logs_folder = desktop_path + '/dummy/stg1'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -65,7 +65,7 @@ TS_data = {
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 200 #Set equal to None if you want to use all audios
+    'num': 1000 #Set equal to None if you want to use all audios
 }
 
 #Kaggle's variables and paths
@@ -124,7 +124,7 @@ manual_chars = ['!','?','(',')','+','*','#','$','&','-','=']
 early_stop = {'n': 6, 'p': 0.999}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
-bucket_boundaries = sorted([2000, 5000, 8000]) #in miliseconds
+bucket_boundaries = sorted([2000]) #in miliseconds
 drop_last = True
 
 GRU = {'dim': [64], 'hid_dim': [64], 'layers': [2]}
@@ -134,7 +134,7 @@ n_mels = [128] #n_feats
 dropout = [0.1]
 learning_rate = [1e-4]
 batch_size = [2]
-epochs = [4]
+epochs = [30]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################

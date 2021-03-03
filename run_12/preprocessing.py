@@ -16,27 +16,15 @@ from utils import delete_contents, log_message, error, warn
 
 def check_folder(this_path):
     '''If {this_path} exists, ask if okay to overwrite; otherwise create it'''
-    folder = ''
-    subfolder = this_path
-    #Check if {this_path} is either a folder or a folder/subfolder situation
-    if '/' in subfolder:
-        folder = '/'.join(this_path.split('/')[:-1])
+    if not os.path.isdir(this_path):
+            os.mkdir(this_path)    
     
-    #If this is a folder/subfolder situation 
-    if len(folder) != 0:
-        if not os.path.isdir(folder):
-            os.mkdir(folder)
-    
-    #If subfolder doesn't exist, create it
-    if not os.path.isdir(subfolder):
-            os.mkdir(subfolder)    
-    
-    if len(os.listdir(subfolder)) != 0:
-        print(f"{subfolder} isn't empty, is it okay if I overwrite it?")
+    if len(os.listdir(this_path)) != 0:
+        print(f"{this_path} isn't empty, is it okay if I overwrite it?")
         if input() != 'y':
             sys.exit()
         else:
-            delete_contents(subfolder)
+            delete_contents(this_path)
 
 def ask_user(this_msg):
     """
