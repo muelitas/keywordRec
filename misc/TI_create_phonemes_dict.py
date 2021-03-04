@@ -71,11 +71,20 @@ for idx, word in enumerate(vocabulary):
     phones = phonemize(word, L, B_E, c_sep)[:-2]
     phones = phones.replace('_', ' ')
     
+    #Manual edits
+    if word == 'scouring' or word == 'lunchroom':
+        if word == 'scouring':
+            #Remove space between 'aɪʊ' and 'ɹ'
+            phones = 's k aɪʊɹ ɪ ŋ'
+        else:
+            #Remove double space between 'tʃ' and 'ɹ'
+            phones = 'l ʌ n tʃ ɹ uː m'
+    
     #Give warning if word has an 'empty' phoneme
     for ph in phones.split(' '):
         if ph == '':
             print(f"\tWARNING: This word '{word}' has an empty phoneme")
-    
+            
     Dict.write(word + '\t' + phones + '\n')
     Dictionary[word] = phones
 
