@@ -27,6 +27,7 @@ from utils import data_processing, train, dev, Metrics, log_model_information, \
     plot_and_save, log_message, find_best_lr, BucketsSampler, CUSTOM_DATASET, \
     log_labels, log_k_words_instances, error, save_chckpnt
 
+#TODO implement readablechars2IPA in custom dataset (or data_processing?)
 #TODO check that paths exist, particularly the ones for preprocessing
 #Comment this from time to time and check warnings are the same
 warnings.filterwarnings("ignore")
@@ -57,19 +58,19 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 200 #Set equal to None if you want to use all audios
+    'num': 50 #Set equal to None if you want to use all audios
 }
 
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -132,7 +133,7 @@ n_mels = [128] #n_feats
 dropout = [0.1]
 learning_rate = [1e-4]
 batch_size = [2]
-epochs = [2]
+epochs = [1]
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################

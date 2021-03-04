@@ -194,25 +194,31 @@ def chars_to_int(text, char2int):
     return integers
 
 def int_to_chars(ints_list, int2char):
-    '''Convert list of ints to string of phonemes'''
-    text = []
-    for i in ints_list:
-        text.append(int2char[i])
+    '''Convert list of ints to string of custom characters'''
+    #THIS was the old way
+    # text = []
+    # for i in ints_list:
+    #     text.append(int2char[i])
         
-    text = '_'.join(text)
-    text = text.replace('_ _', ' ')
+    # text = '_'.join(text)
+    # text = text.replace('_ _', ' ')
+    
+    text = ''
+    for i in ints_list:
+        text += int2char[i]
     
     return text
 
 def chars_to_ipa(predictions, targets, char2ipa):
-    '''Trsanslate decoded predictions and decoded targets to ipa phonemes'''
+    '''Trsanslate decoded predictions and decoded targets to ipa phonemes.
+    Phonemes are separated by an underscore.'''
     predicted_ipas, target_ipas = [], []
     
     for prediction in predictions:
         new_words = []
         for word in prediction.split(' '):
             new_word = []
-            for ch in word.split('_'):
+            for ch in word:
                 if ch == '':
                     new_word.append('')
                 else:
@@ -226,7 +232,7 @@ def chars_to_ipa(predictions, targets, char2ipa):
         new_words = []
         for word in target.split(' '):
             new_word = []
-            for ch in word.split('_'):
+            for ch in word:
                 if ch == '':
                     new_word.append('')
                 else:
@@ -238,6 +244,34 @@ def chars_to_ipa(predictions, targets, char2ipa):
         
     return predicted_ipas, target_ipas
 
+def readablechars2IPA(text, words_dict):
+    '''Used for inferencing. Convert readable characters in {text} to IPA
+    phonemes using translations in {words_dict}'''
+    new_words = []
+    words = text.split(' ')
+    for word in words:
+        phs_seq = words_dict[word] #phonemes translation of word
+        phs_seq = phs_seq.replace(' ', '_')
+        new_words.append(phs_seq)
+    
+    text = ' '.join(new_words)
+    return text
+
+def IPA2customchars(text, ipa2char):
+    '''Convert IPA phonemes in {text} to custom characters using the mapping
+    in {ipa2char}. Used for inferences.'''
+    words = text.split(' ')
+    new_words = []
+    for word in words:
+        new_word = []
+        ipa_phones = word.split('_')
+        for ph in ipa_phones:
+            new_word.append(ipa2char[ph])
+            
+        new_words.append('_'.join(new_word))
+        
+    text = ' '.join(new_words)
+    return text
 
 def avg_wer(wer_scores, combined_ref_len):
     return float(sum(wer_scores)) / float(combined_ref_len)
@@ -459,10 +493,9 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
           log_file, blank_label, int2char, char2ipa, losses):
     model.train()
     batches_num = train_loader.batch_sampler.num_of_batches
-    # step = batches_num//2 + 1 #Used to print in terminal
     msg = f"\tEpoch: {epoch} | "
     
-    avg_loss, decoded_preds, decoded_targets, MSG, lrs = 0, [], [], '', []
+    avg_loss, lrs = 0, []
     for batch_idx, _data in enumerate(train_loader):
         spectrograms, labels, input_lengths, label_lengths, filenames = _data 
         spectrograms, labels = spectrograms.to(device), labels.to(device)
@@ -477,33 +510,17 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
         loss = criterion(output, labels, input_lengths, label_lengths)
         avg_loss += loss.detach().item()
         loss.backward()
-        
-        #To have an insight on the prediction of characters
-        # decoded_preds, decoded_targets = GreedyDecoder(output.transpose(0, 1),
-        #     labels, label_lengths, blank_label, int2char)
-        
-        #Decode prediction and targets into ipa phonemes (to assess progress)
-        # predicted_ipas, target_ipas = chars_to_ipa(decoded_preds,
-        #     decoded_targets, char2ipa)
        
         lrs.append(scheduler.get_lr()[0])        
         optimizer.step()
         scheduler.step()
-        
-        #Log some more predictions (first of these batches)
-        # if batch_idx % step == 0:
-        #     MSG += f'\t\tBatch [{batch_idx+1}/{batches_num}] | '
-        #     MSG += f"{target_ipas[0]}' -> '{predicted_ipas[0]}'\n"
             
     avg_loss /= batches_num
     avg_lr = sum(lrs) / batches_num
     losses.add_train_metrics(avg_loss, avg_lr)
     
     msg += f"Train Avg Loss: {avg_loss:.4f}\n"
-    # msg += f"Train Avg Loss: {avg_loss:.4f} | '{target_ipas[0]}' -> "
-    # msg += f"'{predicted_ipas[0]}'\n"
     log_message(msg, log_file, 'a', True)
-    # log_message(MSG, log_file, 'a', False)
             
 def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
         int2char, char2ipa, metrics):
@@ -527,6 +544,8 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
             output = model(spectrograms)  # (batch, time, n_class)
             output = F.log_softmax(output, dim=2)
             output = output.transpose(0, 1) # (time, batch, n_class)
+            
+            print(f"\n\nlabels: {labels}\n\n")
 
             loss = criterion(output, labels, input_lengths, label_lengths)
             dev_loss += loss.detach().item()
@@ -534,9 +553,15 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
             decoded_preds, decoded_targets = GreedyDecoder(output.transpose(0, 1),
                 labels, label_lengths, blank_label, int2char)
             
+            print(f"\n\decoded_preds: {decoded_preds}\n\n")
+            print(f"\n\decoded_targets: {decoded_targets}\n\n")
+            
             #Decode prediction and targets into ipa phonemes (to assess progress)
             predicted_ipas, target_ipas = chars_to_ipa(decoded_preds,
                 decoded_targets, char2ipa)
+            
+            print(f"\n\predicted_ipas: {predicted_ipas}\n\n")
+            print(f"\n\target_ipas: {target_ipas}\n\n")
                                 
             #Log some more predictions
             if i % step == 0:
