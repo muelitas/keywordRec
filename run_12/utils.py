@@ -544,8 +544,6 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
             output = model(spectrograms)  # (batch, time, n_class)
             output = F.log_softmax(output, dim=2)
             output = output.transpose(0, 1) # (time, batch, n_class)
-            
-            print(f"\n\nlabels: {labels}\n\n")
 
             loss = criterion(output, labels, input_lengths, label_lengths)
             dev_loss += loss.detach().item()
@@ -553,15 +551,9 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
             decoded_preds, decoded_targets = GreedyDecoder(output.transpose(0, 1),
                 labels, label_lengths, blank_label, int2char)
             
-            print(f"\n\decoded_preds: {decoded_preds}\n\n")
-            print(f"\n\decoded_targets: {decoded_targets}\n\n")
-            
             #Decode prediction and targets into ipa phonemes (to assess progress)
             predicted_ipas, target_ipas = chars_to_ipa(decoded_preds,
                 decoded_targets, char2ipa)
-            
-            print(f"\n\predicted_ipas: {predicted_ipas}\n\n")
-            print(f"\n\target_ipas: {target_ipas}\n\n")
                                 
             #Log some more predictions
             if i % step == 0:
