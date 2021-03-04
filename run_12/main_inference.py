@@ -111,10 +111,17 @@ with torch.no_grad():
                   f"\t{predicted_ipas[0]}\n")
 
 log.close()
+
 # Log and print average PER and average WER
-msg = f"\nFor this transcript: {transcr_path}, the results were the following"
-msg += f":\nAverage PER: {(sum(pers)/len(pers)):.4f}\nAverage WER: "
-msg += f"{(sum(wers)/len(wers)):.4f}"
+msg = f"\nI am using this checkpoint {chckpnt_path}\n"
+msg += f"I am running inferences for this transcript: {transcr_path}\n"
+msg += "Results are:\n"
+msg += f"Average PER: {(sum(pers)/len(pers)):.4f}\n"
+msg += f"Average WER: {(sum(wers)/len(wers)):.4f}"
+msg += "\n\nI used the following dictionaries:\n"
+for Dict in dicts:
+    msg += f"\t{Dict}\n"
+
 log_message(msg, logfile_path, 'a', True)
 
 '''References:
