@@ -16,6 +16,13 @@ from utils import delete_contents, log_message, error, warn
 
 def check_folder(this_path):
     '''If {this_path} exists, ask if okay to overwrite; otherwise create it'''
+    #Get parent folder and make sure it exists
+    par_dir = '/'.join(this_path.split('/')[:-1])
+    if not os.path.isdir(par_dir):
+            os.mkdir(par_dir)   
+            print(f"Parent folder '{par_dir.split('/')[-1]}' has been created")
+    
+    #Now, make sure {this_path} exists. If it does, ask if okay to overwrite.
     if not os.path.isdir(this_path):
             os.mkdir(this_path)    
     
@@ -661,7 +668,7 @@ def dataset_create_csv(k_words, dataset, k_words_path):
     elif dataset['dataset_ID'] == 'KA': #Kaggle
         KA_check(k_words, dataset)
         KA_create_csv(dataset, k_words_path)
-    elif dataset['dataset_ID'] == 'TI': #TIMIT
+    elif dataset['dataset_ID'] == 'TI_tr' or dataset['dataset_ID'] == 'TI_te':
         TI_check(k_words, dataset)
         TI_create_csv(dataset, k_words_path)
     elif dataset['dataset_ID'] == 'SC': #Speech Commands

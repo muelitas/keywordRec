@@ -36,12 +36,12 @@ warnings.filterwarnings("ignore")
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
 PREPROCESSING = True #preprocessing, get transcripts ready
 FIND_LR = False #find best learning rate
-TRAIN = True #train and validate!
+TRAIN = False #train and validate!
 
 desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = '/media/mario/audios' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = desktop_path + '/dummy/stg1'
+logs_folder = desktop_path + '/dummy3/stg1'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -79,13 +79,23 @@ KA_data = {
 }
 
 #TIMIT's variables and paths
-TI_data = {
-    'dataset_ID': 'TI',
-    'use_dataset': False,
+TI_train = {
+    'dataset_ID': 'TI_tr',
+    'use_dataset': True,
     'dict': data_root + '/dict/ti_all_train_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TI_all_train/transcript.txt',
-    'train_csv': gt_csvs_folder + '/ti_train.csv',
-    'dev_csv': gt_csvs_folder + '/ti_dev.csv',
+    'train_csv': gt_csvs_folder + '/ti_tr_train.csv',
+    'dev_csv': gt_csvs_folder + '/ti_tr_dev.csv',
+    'splits': [0.9, 0.1]
+}
+#In case we also want to train with TIMIT's TEST audios
+TI_test = {
+    'dataset_ID': 'TI_te',
+    'use_dataset': True,
+    'dict': data_root + '/dict/ti_all_test_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TI_all_test/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ti_te_train.csv',
+    'dev_csv': gt_csvs_folder + '/ti_te_dev.csv',
     'splits': [0.9, 0.1]
 }
 
@@ -108,7 +118,7 @@ dictionary(ies).'''
 other_dicts = []
 
 #Specify which datasets you want to use for training
-datasets = [TS_data, KA_data, TI_data, SC_data]
+datasets = [TS_data, KA_data, TI_train, TI_test, SC_data]
 #Location of "final" csvs, the ones that will be used to train and validate
 train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'
