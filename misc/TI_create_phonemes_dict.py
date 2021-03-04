@@ -19,9 +19,9 @@ from phonemizer import phonemize
 from phonemizer.separator import Separator
 
 root = '/media/mario/audios'
-transcr_path = root + '/spctrgrms/clean/TI/transcript.txt'
-dict_txt = root + '/dict/ti_dict.txt'
-dict_pickle = root + '/dict/ti_dict.pickle'
+transcr_path = root + '/spctrgrms/clean/TI_all_test/transcript.txt'
+dict_txt = root + '/dict/ti_all_test_dict.txt'
+dict_pickle = root + '/dict/ti_all_test_dict.pickle'
 #Parameters for phonemizer
 #language 'es-la' latin-america, 'es' spain, 'en-us' USA, 'en' british
 L = 'en-us'
@@ -91,11 +91,12 @@ print(f".txt dictionary has been saved here {dict_txt}")
 print(f".pickle dictionary has been saved here {dict_pickle}")
 
 '''Use this to fix any words that have an empty phoneme:
-    #Run this first to see the extra space
-    path_to_dict = '/home/mario/Desktop/ctc_data/dict/ti_all_test_dict.pickle'
-    Dictionary = pickle.load(open(path_to_dict, "rb" ))
-    print(Dictionary["lunchroom"])
-    #Then, run it together with this (with respective fix)
-    Dictionary["lunchroom"] = 'l ʌ n tʃ ɹ uː m'
-    print(Dictionary["lunchroom"])
-    pickle.dump(Dictionary, open(path_to_dict, "wb"))'''
+import pickle
+#Run this first to see the extra space
+path_to_dict = '/home/mario/Desktop/ctc_data/dict/ti_all_test_dict.pickle'
+Dictionary = pickle.load(open(path_to_dict, "rb" ))
+print(Dictionary["lunchroom"])
+#Then, run it together with this (with respective fix)
+Dictionary["lunchroom"] = 'l ʌ n tʃ ɹ uː m'
+print(Dictionary["lunchroom"])
+pickle.dump(Dictionary, open(path_to_dict, "wb"))'''
