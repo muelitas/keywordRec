@@ -9,6 +9,7 @@
     
 ***************************************************************************'''
 import os
+from os.path import join as pj #pj stands for path.join
 from pathlib import Path
 import pickle
 import random
@@ -27,20 +28,30 @@ warnings.filterwarnings("ignore")
 
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
-desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
-chckpnt_path = str(Path.home()) + '/dummy/stg1/checkpoint_onRun01onEpoch081.tar'
-logfile_path = desktop_path + '/dummy/inferences_on_SC.txt'
-#Transcript path to dataset that will be inferenced
-transcr_path = '/media/mario/audios/spctrgrms/clean/SC/yes/transcript.txt'
-# Specify which dictionary or dictionaries where used for the checkpoint
-dicts = ['/media/mario/audios/dict/sc_dict.pickle']
+runs_root = str(Path.home()) + '/Desktop/ctc_runs'
+data_root = '/media/mario/audios' #path to folder 'data' is
+
+par_dir = 'dummy' #name of run
+stg_dir = 'stg1'
+chckpnt = 'checkpoint_onRun01onEpoch081.tar'
+logfile = 'inferences_on_SC.txt'
+
+transcr_path = data_root + '/spctrgrms/clean/SC/yes/transcript.txt'
+dicts = ['/dict/sc_dict.pickle'] #specify dictionaries to use
 
 other_chars = [' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=']
+#TODO log information about keyword_instances in transcript
 k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
+#YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
+##############################################################################
+#Set up full paths to checkpoint and logfile
+chckpnt_path = pj(runs_root, par_dir, stg_dir, chckpnt)
+logfile_path = pj(runs_root, par_dir, stg_dir, logfile)
 
-#TODO log information about keyword_instances in transcript
+#Add data root to dictionaries' paths
+dicts = [data_root + item for item in dicts]
 
 #Make sure directory where logfile is being saved exists
 logfile_dir = '/'.join(logfile_path.split('/')[:-1])
