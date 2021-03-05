@@ -784,3 +784,20 @@ def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
     }, save_path)
     
     return save_path
+
+def get_words_in_dicts(dictionaries):
+    '''Given a list of dictionaries' paths, load them and compact their words
+    into a unique-words dictionary (sorted)'''        
+    all_words = {}
+    
+    for dictionary in dictionaries:
+        words_dict = pickle.load(open(dictionary, "rb" ))
+        for k, v in words_dict.items():
+            if k not in list(all_words.keys()):
+                all_words[k] = v
+                
+    all_words_sorted = {}
+    for key in sorted(all_words.keys()):
+        all_words_sorted[key] = all_words[key]
+        
+    return all_words_sorted
