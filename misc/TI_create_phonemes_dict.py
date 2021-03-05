@@ -72,13 +72,19 @@ for idx, word in enumerate(vocabulary):
     phones = phones.replace('_', ' ')
     
     #Manual edits
-    if word == 'scouring' or word == 'lunchroom':
+    if word == 'scouring' or word == 'lunchroom' or word == 'reupholstering' or word == 'brochure':
         if word == 'scouring':
             #Remove space between 'aɪʊ' and 'ɹ'
             phones = 's k aɪʊɹ ɪ ŋ'
-        else:
+        elif word == 'lunchroom':
             #Remove double space between 'tʃ' and 'ɹ'
             phones = 'l ʌ n tʃ ɹ uː m'
+        elif word == 'reupholstering':
+            #Change 'r' for 'ɹ'
+            phones = 'ɹ j uː f ə l s t ɚ ɹ ɪ ŋ'
+        else: #'brochure'
+            #Remove 'r'
+            phones = 'b ɹ oʊ ʃ ʊɹ'
     
     #Give warning if word has an 'empty' phoneme
     for ph in phones.split(' '):
