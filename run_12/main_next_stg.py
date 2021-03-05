@@ -36,13 +36,14 @@ warnings.filterwarnings("ignore")
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
 PREPROCESSING = True #preprocessing, get transcripts ready
-FIND_LR = False #find learning rate
-TRAIN = True #train and test!
+FIND_LR = True #find learning rate
+TRAIN = False #train and test!
 transf_learn_all_layers = True
 
 #Root location of logs, plots and checkpoints
 desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
 #Root location of spectrograms and dictionaries
+# data_root = str(Path.home()) + '/Desktop/ctc_data'
 data_root = '/media/mario/audios'
 
 prev_chckpt_dir = 'dummy' #Previous checkpoint folder name
@@ -86,7 +87,7 @@ TS_data = {
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -95,13 +96,23 @@ KA_data = {
 }
 
 #TIMIT's variables and paths
-TI_data = {
-    'dataset_ID': 'TI',
-    'use_dataset': False,
-    'dict': data_root + '/dict/ti_dict.pickle',
-    'transcript': data_root + '/spctrgrms/clean/TI/transcript.txt',
-    'train_csv': gt_csvs_folder + '/ti_train.csv',
-    'dev_csv': gt_csvs_folder + '/ti_dev.csv',
+TI_train = {
+    'dataset_ID': 'TI_tr',
+    'use_dataset': True,
+    'dict': data_root + '/dict/ti_all_train_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TI_all_train/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ti_tr_train.csv',
+    'dev_csv': gt_csvs_folder + '/ti_tr_dev.csv',
+    'splits': [0.9, 0.1]
+}
+#In case we also want to train with TIMIT's TEST audios
+TI_test = {
+    'dataset_ID': 'TI_te',
+    'use_dataset': True,
+    'dict': data_root + '/dict/ti_all_test_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TI_all_test/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ti_te_train.csv',
+    'dev_csv': gt_csvs_folder + '/ti_te_dev.csv',
     'splits': [0.9, 0.1]
 }
 
@@ -121,10 +132,10 @@ the chosen datasets. For example, if you chose to use KA, the run will only
 have 38 classes (number of unique phonemes in KA). But if you want to train
 also in english phonemes, you'll have to specify the path or paths to english
 dictionary(ies).'''
-other_dicts = []
+other_dicts = [data_root + '/dict/ka_dict.pickle']
 
 #Specify which datasets you want to use for training
-datasets = [TS_data, KA_data, TI_data, SC_data]
+datasets = [TS_data, KA_data, TI_train, TI_test, SC_data]
 #Location of "final" csvs, the ones that will be used to train and validate
 train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'
@@ -135,7 +146,7 @@ max_lr = 1.0
 
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
-manual_chars = ['!','?','(',')','+','*','#','$','&','-','=']
+manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
 early_stop = {'n': 8, 'p': 0.999}
 #TM Will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes

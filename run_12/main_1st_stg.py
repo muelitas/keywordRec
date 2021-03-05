@@ -70,7 +70,7 @@ TS_data = {
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': False,
+    'use_dataset': True,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -129,11 +129,11 @@ max_lr = 1.0
 
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
-manual_chars = ['!','?','(',')','+','*','#','$','&','-','=']
+manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
 early_stop = {'n': 6, 'p': 0.999}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
-bucket_boundaries = sorted([2000]) #in miliseconds
+bucket_boundaries = sorted([2500, 3500, 5000]) #in miliseconds
 drop_last = True
 
 GRU = {'dim': [64], 'hid_dim': [64], 'layers': [8]}

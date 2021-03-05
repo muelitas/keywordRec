@@ -11,7 +11,6 @@
 import os
 from os.path import join as pj #pj stands for path.join
 from pathlib import Path
-import pickle
 import random
 import sys
 import torch
@@ -21,7 +20,7 @@ import warnings
 from models import SpeechRecognitionModel
 from preprocessing import get_mappings
 from utils import chars_to_int, GreedyDecoder, chars_to_ipa, cer, wer, \
-    readablechars2IPA, IPA2customchars, log_message
+    readablechars2IPA, IPA2customchars, log_message, get_words_in_dicts
 
 #Comment this from time to time and check warnings are the same
 warnings.filterwarnings("ignore")
@@ -31,16 +30,18 @@ warnings.filterwarnings("ignore")
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = '/media/mario/audios' #path to folder 'data' is
 
-par_dir = 'dummy' #name of run
+par_dir = 'TSall_KAall_120E_ML2' #name of run
 stg_dir = 'stg1'
-chckpnt = 'checkpoint_onRun01onEpoch081.tar'
-logfile = 'inferences_on_SC.txt'
+chckpnt = 'checkpoint_onRun01onEpoch084.tar'
+logfile = 'inferences_on_AO_SP.txt'
 
-transcr_path = data_root + '/spctrgrms/clean/SC/yes/transcript.txt'
-dicts = ['/dict/sc_dict.pickle'] #specify dictionaries to use
+transcr_path = data_root + '/spctrgrms/clean/AO_SP/transcript.txt'
+dicts = ['/dict/ka_dict.pickle',
+         '/dict/ts_dict.pickle',
+         '/dict/AO_sp_dict.pickle'] #specify dictionaries to use
 
 other_chars = [' ']
-manual_chars = ['!','?','(',')','+','*','#','$','&','-','=']
+manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
 #TODO log information about keyword_instances in transcript
 k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
@@ -59,6 +60,13 @@ if not os.path.exists(logfile_dir):
     print("The folder in which you want to save the inferences' results "
           "doesn't exist. Please double check it.")
     sys.exit()
+    
+#If {logfile} already exists, ask if okay to overwrite
+if os.path.exists(logfile_path):
+    print("The file in which you want to save the inferences already "
+          "exist. You sure you want me to continue? [y/n]")
+    if input().lower() != 'y':
+        sys.exit()
 
 # Get IPA to Char, Char to IPA, Char to Int and Int to Char dictionaries
 ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings([],
@@ -82,14 +90,15 @@ model.eval()
 
 #Read lines from transcript that will be used for inferences
 transcr = open(transcr_path, 'r')
-lines = transcr.readlines()[:50]
+lines = transcr.readlines()
 transcr.close()
 
 #Iterate through lines, calculate PER and WER for each line
 log = open(logfile_path, 'w')
 log.write("Line#\tPER\tWER\tTarget IPAs\tPredicted IPAs\n")
-words_dict = pickle.load(open(dicts[0], "rb" ))
+words_dict = get_words_in_dicts(dicts)
 with torch.no_grad():
+    print("Running inferences now...")
     pers, wers = [], []
     for idx, line in enumerate(lines):
         #Get text and spectrogram
@@ -119,14 +128,19 @@ with torch.no_grad():
         wers.append(wer(decoded_targets[0], decoded_preds[0]))
         #Log PER, WER, target_ipas and predicted_ipas
         log.write(f"{idx+1}\t{pers[-1]:.4f}\t{wers[-1]:.4f}\t{target_ipas[0]}"
-                  f"\t{predicted_ipas[0]}\n")
+                  f"\t\t{predicted_ipas[0]}\n")
+        
+        if idx%200 == 0:
+            print(f"\t{idx+1}/{len(lines)} inferences ran...")
 
+    print(f"Done, all {idx+1} inferences have been run")
+    
 log.close()
 
 # Log and print average PER and average WER
 msg = f"\nI am using this checkpoint {chckpnt_path}\n"
 msg += f"I am running inferences for this transcript: {transcr_path}\n"
-msg += "Results are:\n"
+msg += "\nResults are:\n"
 msg += f"Average PER: {(sum(pers)/len(pers)):.4f}\n"
 msg += f"Average WER: {(sum(wers)/len(wers)):.4f}"
 msg += "\n\nI used the following dictionaries:\n"
