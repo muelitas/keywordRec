@@ -494,7 +494,7 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
     model.train()
     msg = f"\tEpoch: {epoch} | "
     
-    train_losses, lrs = 0, []
+    train_losses, lrs = [], []
     for batch_idx, _data in enumerate(train_loader):
         spectrograms, labels, input_lengths, label_lengths, filenames = _data 
         spectrograms, labels = spectrograms.to(device), labels.to(device)
