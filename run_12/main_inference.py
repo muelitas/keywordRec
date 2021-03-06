@@ -11,6 +11,7 @@
 import os
 from os.path import join as pj #pj stands for path.join
 from pathlib import Path
+import pickle
 import random
 import sys
 import torch
@@ -20,29 +21,38 @@ import warnings
 from models import SpeechRecognitionModel
 from preprocessing import get_mappings
 from utils import chars_to_int, GreedyDecoder, chars_to_ipa, cer, wer, \
-    readablechars2IPA, IPA2customchars, log_message, get_words_in_dicts
+    readablechars2IPA, IPA2customchars, log_message
 
 #Comment this from time to time and check warnings are the same
 warnings.filterwarnings("ignore")
 
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
+#Root location of logs, plots and checkpoints
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
-data_root = '/media/mario/audios' #path to folder 'data' is
+#Root location of spectrograms and dictionaries
+data_root = str(Path.home()) + '/Desktop/ctc_data' 
 
 par_dir = 'TSall_KAall_120E_ML2' #name of run
 stg_dir = 'stg1'
 chckpnt = 'checkpoint_onRun01onEpoch084.tar'
-logfile = 'inferences_on_AO_SP.txt'
+logfile = 'inferences_on_dummy.txt'
 
-transcr_path = data_root + '/spctrgrms/clean/AO_SP/transcript.txt'
-dicts = ['/dict/ka_dict.pickle',
-         '/dict/ts_dict.pickle',
-         '/dict/AO_sp_dict.pickle'] #specify dictionaries to use
+#Transcript that will be "inferenced" and the respective dictionary
+transcr_path = data_root + '/spctrgrms/clean/TS/transcript.txt'
+dict_transcr = data_root + '/dict/ts_dict.pickle'
+
+#Set to True, those dictionaries that were used in the checkpoint
+dicts_chckpt = {'ka_dict': 1, #0=False, 1=True
+                'ts_dict': 1,
+                'AO_sp_dict': False,
+                'AO_en_dict': 0,
+                'ti_all_train_dict': False,
+                'ti_all_test_dict': False,
+                'sc_dict': 0}
 
 other_chars = [' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-#TODO log information about keyword_instances in transcript
 k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
@@ -50,9 +60,6 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #Set up full paths to checkpoint and logfile
 chckpnt_path = pj(runs_root, par_dir, stg_dir, chckpnt)
 logfile_path = pj(runs_root, par_dir, stg_dir, logfile)
-
-#Add data root to dictionaries' paths
-dicts = [data_root + item for item in dicts]
 
 #Make sure directory where logfile is being saved exists
 logfile_dir = '/'.join(logfile_path.split('/')[:-1])
@@ -68,7 +75,11 @@ if os.path.exists(logfile_path):
     if input().lower() != 'y':
         sys.exit()
 
-# Get IPA to Char, Char to IPA, Char to Int and Int to Char dictionaries
+#Grab only the dictionaries that were used for the checkpoint
+dicts = [k for k, v in dicts_chckpt.items() if v]
+#Add full path to each dictionaty in {dicts}
+dicts = [f"{data_root}/dict/{item}.pickle" for item in dicts]
+#Used {dicts} to get mappings between IPA, Custom Characters and Integers
 ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings([],
     other_chars, manual_chars, dicts)
 
@@ -76,13 +87,29 @@ ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings([],
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
     
-#Initialize seeds (Imight not need them actually)
+#Initialize seeds
 torch.manual_seed(7)
 random.seed(7)
+
+#Ensure all phonemes in transcript exist in the phonemes which with the
+#checkpoint was trained
+words_dict = pickle.load(open(dict_transcr, "rb" ))
+for word, phs_seq in words_dict.items():
+    for ph in phs_seq.split(' '):
+        if ph not in list(ipa2char.keys()):
+            print(f"Checkpoint wasn't trained to recognize this phoneme {ph}")
+            sys.exit()
     
 #Load and prep checkpoint for evaluation
 checkpnt = torch.load(chckpnt_path)
 hparams = checkpnt['hparams']
+
+#Ensure num_classes used in chckpnt match the num_classes specified here
+if hparams['n_class'] != blank_label+1:
+    print(f"\nThere is a mismatch in the number of classes. Checkpoint's is "
+          f"{hparams['n_class']} while here, you have {blank_label+1}.")
+    sys.exit()
+
 model = SpeechRecognitionModel(hparams)
 model.load_state_dict(checkpnt['model_state_dict'])
 model = model.to(device)
@@ -93,10 +120,14 @@ transcr = open(transcr_path, 'r')
 lines = transcr.readlines()
 transcr.close()
 
+#Dictionary that keeps track of how many times each keyword is in transcript
+k_words_num = {}
+for k_word in k_words:
+    k_words_num[k_word] = 0
+    
 #Iterate through lines, calculate PER and WER for each line
 log = open(logfile_path, 'w')
 log.write("Line#\tPER\tWER\tTarget IPAs\tPredicted IPAs\n")
-words_dict = get_words_in_dicts(dicts)
 with torch.no_grad():
     print("Running inferences now...")
     pers, wers = [], []
@@ -104,6 +135,12 @@ with torch.no_grad():
         #Get text and spectrogram
         spctrgrm_path, text, _ = line.split('\t')
         spec = torch.load(spctrgrm_path).unsqueeze(1)
+        
+        #If keywords are in text, count up
+        for word in text.split(' '):
+            if word in list(k_words_num.keys()):
+                k_words_num[word] += 1
+        
         #Text: from readable characters to IPA phonemes (separated by '_')
         text = readablechars2IPA(text, words_dict)
         #Text: from IPA to custom characters
@@ -146,6 +183,13 @@ msg += f"Average WER: {(sum(wers)/len(wers)):.4f}"
 msg += "\n\nI used the following dictionaries:\n"
 for Dict in dicts:
     msg += f"\t{Dict}\n"
+    
+#Log number of instances found in transcript for each keyword
+msg += "\nThis is the number of times each keyword was found in transcript:"
+msg += "\n\tWORD\t|\t# of instances\n"
+for k_word in list(k_words_num.keys()):
+    msg += f"{k_word:>8}\t\t"
+    msg += f"{k_words_num[k_word]:>7}\n"
 
 log_message(msg, logfile_path, 'a', True)
 

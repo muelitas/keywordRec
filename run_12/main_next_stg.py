@@ -13,7 +13,6 @@ import gc
 import os
 from os.path import join as pj #pj stands for path.join
 from pathlib import Path
-import pickle
 import random
 import sys
 import time
@@ -23,7 +22,6 @@ import torch.utils.data as data
 import torch.optim as optim
 import warnings
 
-import constants as cnstnt
 from models import SpeechRecognitionModel
 from preprocessing import preprocess_data, check_folder, get_mappings
 from utils import data_processing, train, dev, Metrics, CUSTOM_DATASET, \
@@ -41,24 +39,25 @@ TRAIN = False #train and test!
 transf_learn_all_layers = True
 
 #Root location of logs, plots and checkpoints
-desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
+runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 #Root location of spectrograms and dictionaries
-# data_root = str(Path.home()) + '/Desktop/ctc_data'
-data_root = '/media/mario/audios'
+data_root = str(Path.home()) + '/Desktop/ctc_data' 
 
 prev_chckpt_dir = 'dummy' #Previous checkpoint folder name
 prev_chckpt_stg = 'stg2' #Previous checkpoint stage name
 new_chckpt_stg = 'stg3' #Stage name for new checkpoint
+prev_chckpt_name = 'checkpoint_onRun01onEpoch020.tar'
+new_chckpt_name = 'checkpoint.tar'
 
 #Paths to logs
-logs_folder = pj(desktop_path, prev_chckpt_dir, new_chckpt_stg)
+logs_folder = pj(runs_root, prev_chckpt_dir, new_chckpt_stg)
 miscellaneous_log = pj(logs_folder, 'miscellaneous.txt')
 train_log = pj(logs_folder, 'train_logs.txt')
 
 #Paths to checkpoints (old and new)
-prev_chckpt_path = pj(desktop_path, prev_chckpt_dir, prev_chckpt_stg,
-    'checkpoint_onRun01onEpoch020.tar')
-new_chckpt_path = pj(logs_folder, 'checkpoint.tar')
+prev_chckpt_path = pj(runs_root, prev_chckpt_dir, prev_chckpt_stg,
+    prev_chckpt_name)
+new_chckpt_path = pj(logs_folder, new_chckpt_name)
 
 #TODO, implement keywords instances
 k_words_path = logs_folder + '/k_words_instances.pickle'
@@ -67,7 +66,7 @@ k_words_path = logs_folder + '/k_words_instances.pickle'
 ipa2char, char2ipa, char2int, int2char, blank_label = {}, {}, {}, {}, 0
 
 #PREPROCESSING-----------------------------------------------------------------=
-gt_csvs_folder = desktop_path + '/gt'
+gt_csvs_folder = runs_root + '/gt'
 k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 # SR = 16000 # All audios are 16000 due to audios2spctrgrms.py files
@@ -159,8 +158,8 @@ new_hparams = {'epochs': 1, 'learning_rate': 1e-3}
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
 #Make sure that assumed-path-to-desktop exists
-if not os.path.exists(desktop_path):
-    print(f"{error()} I assumed your desktop's path was {desktop_path}"
+if not os.path.exists(runs_root):
+    print(f"{error()} I assumed your desktop's path was {runs_root}"
           ", but it seems I am incorrect. Can you please fix it? Thanks.")
     sys.exit()
     

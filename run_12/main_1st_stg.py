@@ -38,10 +38,10 @@ PREPROCESSING = True #preprocessing, get transcripts ready
 FIND_LR = False #find best learning rate
 TRAIN = False #train and validate!
 
-desktop_path = str(Path.home()) + '/Desktop/ctc_runs'
-data_root = '/media/mario/audios' #root for dicts and transcripts
+runs_root = str(Path.home()) + '/Desktop/ctc_runs'
+data_root = str(Path.home()) + '/Desktop/ctc_data' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = desktop_path + '/dummy3/stg1'
+logs_folder = runs_root + '/dummy3/stg1'
 miscellaneous_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -50,7 +50,7 @@ k_words_path = logs_folder + '/k_words_instances.pickle'
 ipa2char, char2ipa, char2int, int2char, blank_label = {}, {}, {}, {}, 0
 
 #PREPROCESSING-----------------------------------------------------------------
-gt_csvs_folder = desktop_path + '/gt'
+gt_csvs_folder = runs_root + '/gt'
 k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 # SR = 16000 # All audios are 16000 due to audios2spctrgrms.py files
@@ -148,8 +148,8 @@ epochs = [1]
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
 #Make sure that assumed-path-to-desktop exists
-if not os.path.exists(desktop_path):
-    print(f"{error()} I assumed your desktop's path was {desktop_path}"
+if not os.path.exists(runs_root):
+    print(f"{error()} I assumed your desktop's path was {runs_root}"
           ", but it seems I am incorrect. Can you please fix it? Thanks.")
     sys.exit()
 
