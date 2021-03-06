@@ -492,10 +492,9 @@ def GreedyDecoder(output, labels, label_lengths, blank_label, int2char, collapse
 def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
           log_file, blank_label, int2char, char2ipa, losses):
     model.train()
-    batches_num = train_loader.batch_sampler.num_of_batches
     msg = f"\tEpoch: {epoch} | "
     
-    avg_loss, lrs = 0, []
+    train_losses, lrs = 0, []
     for batch_idx, _data in enumerate(train_loader):
         spectrograms, labels, input_lengths, label_lengths, filenames = _data 
         spectrograms, labels = spectrograms.to(device), labels.to(device)
@@ -508,18 +507,18 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
         output = output.transpose(0, 1) # (time, batch, n_class)
 
         loss = criterion(output, labels, input_lengths, label_lengths)
-        avg_loss += loss.detach().item()
+        train_losses.append(loss.detach().item())
         loss.backward()
        
         lrs.append(scheduler.get_lr()[0])        
         optimizer.step()
         scheduler.step()
             
-    avg_loss /= batches_num
-    avg_lr = sum(lrs) / batches_num
-    losses.add_train_metrics(avg_loss, avg_lr)
+    train_loss = sum(train_losses) / len(train_losses) #epoch's average loss
+    avg_lr = sum(lrs) / len(lrs)
+    losses.add_train_metrics(train_loss, avg_lr)
     
-    msg += f"Train Avg Loss: {avg_loss:.4f}\n"
+    msg += f"Train Avg Loss: {train_loss:.4f}\n"
     log_message(msg, log_file, 'a', True)
             
 def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
@@ -530,8 +529,7 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
     step = batches_num//2 + 1
     
     model.eval()
-    dev_loss = 0
-    dev_cer, dev_wer = [], []
+    dev_losses, dev_cer, dev_wer = [], [], []
     decoded_preds, decoded_targets, MSG = [], [], ''
     
     msg = f"\tEpoch: {epoch} | "
@@ -546,7 +544,7 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
             output = output.transpose(0, 1) # (time, batch, n_class)
 
             loss = criterion(output, labels, input_lengths, label_lengths)
-            dev_loss += loss.detach().item()
+            dev_losses.append(loss.detach().item())
 
             decoded_preds, decoded_targets = GreedyDecoder(output.transpose(0, 1),
                 labels, label_lengths, blank_label, int2char)
@@ -567,7 +565,7 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
 
     avg_cer = sum(dev_cer)/len(dev_cer)
     avg_wer = sum(dev_wer)/len(dev_wer)
-    dev_loss /= batches_num
+    dev_loss = sum(dev_losses) / len(dev_losses) #epoch's average loss
     ratio_loss = dev_loss / metrics.train_losses[epoch-1]
     msg += f"Dev Avg Loss: {dev_loss:.4f} | Ratio Loss: {ratio_loss:.4f} | "
     msg += f"Avg PER: {avg_cer:.4f} | Avg WER: {avg_wer:.4f}\n"
