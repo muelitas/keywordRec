@@ -1,9 +1,11 @@
 '''/**************************************************************************
-    File: utils.py
+    File: TS_separate_keywords.py
     Author(s): Mario Esparza
     Date: 03/06/2021
     
-    TODO
+    Iterate through TTS-gTTS folder and transcript. Grab those audios which
+    contain a keyword. Remove them from original dataset and save them in a
+    new one (with respective transcript).
     
 ***************************************************************************'''
 import os
