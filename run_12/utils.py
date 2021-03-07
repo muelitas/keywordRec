@@ -461,7 +461,6 @@ def data_processing(data, char2int, mels, FM=27, TM=0.125, CASE='dev'):
         #Apply audio transforms (frequency and time masking) to train samples
         if CASE == 'train':
             spec = tforms.FrequencyMasking(FM)(spec)
-            print(f"{spec.size()}->{utterance}")
             spec = tforms.TimeMasking(int(TM * spec.shape[2]))(spec)
                                 
         spec = spec.squeeze(0).transpose(0, 1)
