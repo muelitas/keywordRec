@@ -19,9 +19,9 @@ from phonemizer import phonemize
 from phonemizer.separator import Separator
 
 root = '/media/mario/audios'
-transcr_path = root + '/spctrgrms/clean/TI_all_test/transcript.txt'
-dict_txt = root + '/dict/ti_all_test_dict.txt'
-dict_pickle = root + '/dict/ti_all_test_dict.pickle'
+transcr_path = root + '/spctrgrms/clean/TI_all_train/transcript.txt'
+dict_txt = root + '/dict/ti_all_train_dict.txt'
+dict_pickle = root + '/dict/ti_all_train_dict.pickle'
 #Parameters for phonemizer
 #language 'es-la' latin-america, 'es' spain, 'en-us' USA, 'en' british
 L = 'en-us'

@@ -7,7 +7,7 @@
     list of unique phonemes.
     
 ***************************************************************************''' 
-dict_txt = '/media/mario/audios/dict/ti_all_test_dict.txt'
+dict_txt = '/media/mario/audios/dict/ts_dict.txt'
 
 phs_counter = {}
 
@@ -16,6 +16,9 @@ lines = f.readlines()
 for line in lines[:None]:
     word, phs = line.strip().split('\t')
     for ph in phs.split(' '):
+        if ph == 'pː':
+            print(word)
+        
         if ph not in list(phs_counter.keys()):
             phs_counter[ph] = 1
         else:

@@ -10,9 +10,11 @@
     
 ***************************************************************************''' 
 import matplotlib.pyplot as plt
+from pathlib import Path
 
-dataset = 'TIMIT'
-transcr_path = '/media/mario/audios/spctrgrms/clean/TI_all_train/transcript.txt'
+dataset = 'AOLME'
+data_root = str(Path.home()) + '/Desktop/ctc_data' 
+transcr_path = data_root + '/spctrgrms/clean/AO_EN/transcript.txt'
 
 transcr = open(transcr_path, 'r')
 lines = transcr.readlines()

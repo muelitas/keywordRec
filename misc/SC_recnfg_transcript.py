@@ -24,23 +24,23 @@ def recnfg_transcript(new_root, transcr_path):
         new_lines.append(new_path + '\t' + text + '\t' + duration)
         
         #Use these lines to print some samples
-        print(f"Old Line: {line}", end='')
-        print(f"New Line: {new_lines[idx]}", end='')
-        if idx >= 0:
-            break
+        # print(f"Old Line: {line}", end='')
+        # print(f"New Line: {new_lines[idx]}", end='')
+        # if idx >= 0:
+        #     break
         
     transcr.close()
     
     #Overwrite transcript and save 'new lines'
-    # transcr = open(transcr_path, 'w')
-    # for line in new_lines:
-    #     transcr.write(line)
+    transcr = open(transcr_path, 'w')
+    for line in new_lines:
+        transcr.write(line)
         
-    # transcr.close()
+    transcr.close()
     print(f"-{transcr_path.split('/')[-2]}'s transcript has been reconfigured\n")
 
-src_dir = '/media/mario/audios/spctrgrms/clean/SC'
-new_root = '/media/mario/audios/spctrgrms/test/SC' 
+src_dir = '/home/mario/Desktop/ctc_data/spctrgrms/pyroom/SC'
+new_root = '/home/mario/Desktop/ctc_data/spctrgrms/pyroom/SC' 
 
 #Iterate through folders in {src_dir}; grab a transcript and edit it
 for folder in sorted(os.listdir(src_dir)):
