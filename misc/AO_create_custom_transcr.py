@@ -15,6 +15,19 @@ import shutil
 import soundfile as sf
 import sys
 
+def check_folder(this_dir):
+    '''If {this_dir} exists, ask if okay to overwrite; otherwise, create it'''
+    if not os.path.isdir(this_dir):
+            os.mkdir(this_dir)    
+            
+    if len(os.listdir(this_dir)) != 0:
+        print(f"{this_dir} isn't empty, is it okay if I overwrite it? [y/n]")
+        if input().lower() != 'y':
+            sys.exit()
+        else:
+            shutil.rmtree(this_dir)
+            os.mkdir(this_dir)
+
 def get_transcript_path(folder_path):
     '''Iterate through files in {folder_path} until transcript is found'''
     for file in sorted(os.listdir(folder_path), reverse=True):
@@ -31,6 +44,9 @@ src_dir = root + '/aolme_orig'
 dst_dir = root + '/AO_SP'
 transcr_path = dst_dir + '/transcript.txt'
 SR = 16000
+
+#If {dst_dir} exists, ask if okay to overwrite; otherwise, create it
+check_folder(dst_dir)
 
 #Get transcripts from aolme folder
 print("Started scanning AOLME's folders...")    
