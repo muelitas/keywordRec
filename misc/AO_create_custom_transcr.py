@@ -38,9 +38,9 @@ def get_transcript_path(folder_path):
     print(f"ERROR: Couldn't find a transcript here {folder_path}")
     sys.exit()
     
-spanish = True #Set to false if dealing with english
 root = '/media/mario/audios'
 src_dir = root + '/aolme_orig'
+spanish = True #Set to false if dealing with english
 dst_dir = root + '/AO_SP'
 transcr_path = dst_dir + '/transcript.txt'
 SR = 16000
