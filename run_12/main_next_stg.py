@@ -33,7 +33,6 @@ warnings.filterwarnings("ignore")
 
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
-PREPROCESSING = True #preprocessing, get transcripts ready
 FIND_LR = True #find learning rate
 TRAIN = False #train and test!
 transf_learn_all_layers = True
@@ -51,7 +50,7 @@ new_chckpt_name = 'checkpoint.tar'
 
 #Paths to logs
 logs_folder = pj(runs_root, prev_chckpt_dir, new_chckpt_stg)
-miscellaneous_log = pj(logs_folder, 'miscellaneous.txt')
+misc_log = pj(logs_folder, 'miscellaneous.txt')
 train_log = pj(logs_folder, 'train_logs.txt')
 
 #Paths to checkpoints (old and new)
@@ -126,12 +125,36 @@ SC_data = {
     'splits': [0.9, 0.1],
     'num': 200 #Set equal to None if you want to use all audios
 }
+
+#AOLME's variables and paths
+AO_engl = {
+    'dataset_ID': 'AO_en',
+    'use_dataset': True,
+    'dict': data_root + '/dict/ao_en_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/AO_EN/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ao_en_train.csv',
+    'dev_csv': gt_csvs_folder + '/ao_en_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': 50 #Set equal to None if you want to use all audios
+}
+
+AO_span = {
+    'dataset_ID': 'AO_sp',
+    'use_dataset': True,
+    'dict': data_root + '/dict/ao_sp_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/AO_SP/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ao_sp_train.csv',
+    'dev_csv': gt_csvs_folder + '/ao_sp_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': 50 #Set equal to None if you want to use all audios
+}
+
 '''Specify which dictionaries should be included that weren't included from
 the chosen datasets. For example, if you chose to use KA, the run will only
 have 38 classes (number of unique phonemes in KA). But if you want to train
 also in english phonemes, you'll have to specify the path or paths to english
 dictionary(ies).'''
-other_dicts = [data_root + '/dict/ka_dict.pickle']
+other_dicts = []
 
 #Specify which datasets you want to use for training
 datasets = [TS_data, KA_data, TI_train, TI_test, SC_data]
@@ -153,7 +176,7 @@ bucket_boundaries = sorted([2000]) #in miliseconds
 drop_last = True
 
 #New config. for dropout? batch_size? epochs? learning_rate?
-new_hparams = {'epochs': 1, 'learning_rate': 1e-3}
+new_hparams = {'epochs': 1, 'learning_rate': 1e-3, 'dropout': 0.1}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -176,17 +199,17 @@ check_folder(logs_folder)
 ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings(datasets,
     other_chars, manual_chars, other_dicts)
     
-if PREPROCESSING: #------------------------------------------------------------
-    #In a nutchell: check audios and create csvs for training
-    preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
-                    k_words_path)
+# PREPROCESSING --------------------------------------------------------------
+#In a nutchell: check audios and create csvs for training
+preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
+                k_words_path, misc_log)
     
 if TRAIN or FIND_LR: #--------------------------------------------------------    
     msg = "Training and Validation results are saved here:\n\n"
     log_message(msg, train_log, 'w', False)
     
     msg = "HyperParams, Models Summaries and more will be saved here:\n\n"
-    log_message(msg, miscellaneous_log, 'w', False)
+    log_message(msg, misc_log, 'a', False)
     
     #Determine if gpu is available
     use_cuda = torch.cuda.is_available()
@@ -294,7 +317,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         log_message(msg + '\n\n', train_log, 'a', True)
         
         #Log model summary, # of parameters, hyper parameters and more
-        log_model_information(miscellaneous_log, model, hparams)
+        num_params = log_model_information(misc_log, model, hparams)
             
         #Plot losses, PERs, learning rates and save as figures
         plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.pers,
@@ -306,6 +329,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         
         #Log summary of values, paths and attributes used
         msg += f"Checkpoint has been saved here: {new_chckpt_path}\n"
+        msg += f"Number of parameters in model: {num_params}"
         msg += f"Using all layers in Transf. Learn.? {transf_learn_all_layers}"
         msg += "Are we using masking during training? 'Yes'\n"
         msg += f"In all runs, training set had {len(train_dataset)} audio files "
@@ -321,12 +345,12 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         log_message(msg, train_log, 'a', True)
         
         #Log labels' conversions (from IPA to char and char to int)
-        log_labels(ipa2char, char2int, miscellaneous_log)
+        log_labels(ipa2char, char2int, misc_log)
         #Log & print the number of times each k_word appears in train and dev
-        log_k_words_instances(k_words_path, miscellaneous_log)
+        log_k_words_instances(k_words_path, misc_log)
     
         print("\nModels summaries, hyper parameters and other miscellaneous info "
-              f"can be found here: {miscellaneous_log}")
+              f"can be found here: {misc_log}")
         print(f"A log for all trainings can be found here: {train_log}")
         print(f"Losses' Plots for each run can be found here: {logs_folder}")
         

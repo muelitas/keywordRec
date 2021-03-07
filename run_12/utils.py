@@ -30,10 +30,11 @@ def log_model_information(log_file, model, hparams):
     '''Log model summary, # of parameters, hyper parameters and more'''
     original_stdout = sys.stdout # Save a reference to the original std output
     with open(log_file, 'a') as log:
+        num_params = sum([param.nelement() for param in model.parameters()])
         sys.stdout = log # Change standard output to the created file
         #Number of parameters
         print('Total Number of Parameters in the Model is: ',end='')
-        print(sum([param.nelement() for param in model.parameters()]))
+        print(num_params)
         
         #Model Summary
         print("\nModel's Summary:")
@@ -47,6 +48,8 @@ def log_model_information(log_file, model, hparams):
         print('\n')
         #Reset the std output to its original value (the terminal)
         sys.stdout = original_stdout 
+        
+        return num_params
 
 def log_message(msg, log_file, mode, both=True):
     '''Function that prints and/or adds to log'''
@@ -458,6 +461,7 @@ def data_processing(data, char2int, mels, FM=27, TM=0.125, CASE='dev'):
         #Apply audio transforms (frequency and time masking) to train samples
         if CASE == 'train':
             spec = tforms.FrequencyMasking(FM)(spec)
+            print(f"{spec.size()}->{utterance}")
             spec = tforms.TimeMasking(int(TM * spec.shape[2]))(spec)
                                 
         spec = spec.squeeze(0).transpose(0, 1)

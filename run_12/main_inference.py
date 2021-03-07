@@ -39,14 +39,18 @@ chckpnt = 'checkpoint_onRun01onEpoch084.tar'
 logfile = 'inferences_on_dummy.txt'
 
 #Transcript that will be "inferenced" and the respective dictionary
-transcr_path = data_root + '/spctrgrms/clean/TS/transcript.txt'
-dict_transcr = data_root + '/dict/ts_dict.pickle'
+transcr_path = data_root + '/spctrgrms/clean/AO_SP/transcript.txt'
+dict_transcr = data_root + '/dict/ao_sp_dict.pickle'
+
+#If you didn't train with all specs in transcript and are running inferences
+#in the remaining, change these variables accordingly
+start, end = 0, None
 
 #Set to True, those dictionaries that were used in the checkpoint
 dicts_chckpt = {'ka_dict': 1, #0=False, 1=True
                 'ts_dict': 1,
-                'AO_sp_dict': False,
-                'AO_en_dict': 0,
+                'ao_sp_dict': False,
+                'ao_en_dict': 0,
                 'ti_all_train_dict': False,
                 'ti_all_test_dict': False,
                 'sc_dict': 0}
@@ -117,7 +121,7 @@ model.eval()
 
 #Read lines from transcript that will be used for inferences
 transcr = open(transcr_path, 'r')
-lines = transcr.readlines()
+lines = transcr.readlines()[start:end]
 transcr.close()
 
 #Dictionary that keeps track of how many times each keyword is in transcript

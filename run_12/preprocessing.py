@@ -404,6 +404,86 @@ def LS_create_csv(LS_data, phones_dict):
           f"{len(lines[dev_split:LS_data['num']])} and {dev_split}"
           " lines have been added to each file respectively.")
 
+def AO_create_csv(dataset, k_words_path, misc_log):
+    '''Iterates through lines in {transcript} and creates 2 transcripts
+    (train & dev) that contain three columns: pt_full_path, audio's text and
+    audio's duration. Translate each word in transcript to a set of IPA
+    phonemes. Update keyword counter as well.'''
+    #Get dictionary of words and their phoneme representation
+    dict_words = pickle.load(open(dataset['dict'], "rb" ))
+    
+    #Load dictionary that contains encountered instances of each keyword
+    k_words_num = pickle.load(open(k_words_path, "rb" ))
+    
+    #Grab all lines from transcript
+    f = open(dataset['transcript'], 'r')
+    lines = f.readlines()
+    f.close()
+    
+    #If desired number of audios to use exceeds available audios, give warning
+    if((dataset['num'] != None) and (dataset['num'] >= len(lines))):
+        print(f"\nWARNING: {dataset['num']} is out of range for AO's dataset."
+              " I am setting 'num' equal to 'None'. This will give you all "
+              "the audios in the Dataset.")
+        dataset['num'] = None
+    
+    #Determine how many samples I will need for validation
+    num = len(lines) if dataset['num'] == None else dataset['num']
+    dev_split = int(dataset['splits'][1] * num)
+    
+    #No need to shuffle here. I am shuffling in Batch Sampler.
+    
+    #Get training samples; save tensor paths and their phonemes in {train_csv}
+    f = open(dataset['train_csv'], 'w')
+    for item in lines[dev_split:dataset['num']]:
+        pt_path, old_sentence, duration = item.split('\t')
+        new_sentence = []
+        words = old_sentence.split(' ')
+        for word in words:
+            phs_seq = dict_words[word] #phonemes translation of word
+            phs_seq = phs_seq.replace(' ', '_')
+            new_sentence.append(phs_seq)
+            
+            #If k_word is found, update {k_words_num}
+            if word in list(k_words_num['train'].keys()):
+                k_words_num['train'][word] += 1
+        
+        f.write(pt_path + '\t' + ' '.join(new_sentence) + '\t' + duration)
+        
+    f.close()
+    
+    #Get validation samples; save tensor paths and their phonemes in {dev_csv}
+    f = open(dataset['dev_csv'], 'w')
+    for item in lines[:dev_split]:
+        pt_path, old_sentence, duration = item.split('\t')
+        new_sentence = []
+        words = old_sentence.split(' ')
+        for word in words:
+            phs_seq = dict_words[word] #phonemes translation of word
+            phs_seq = phs_seq.replace(' ', '_')
+            new_sentence.append(phs_seq)
+            
+            #If k_word is found, update {k_words_num}
+            if word in list(k_words_num['dev'].keys()):
+                k_words_num['dev'][word] += 1
+        
+        f.write(pt_path + '\t' + ' '.join(new_sentence) + '\t' + duration)
+        
+    f.close()
+    
+    #Save updated {k_words_num}
+    pickle.dump(k_words_num, open(k_words_path, "wb"))
+    
+    print(f"\nThe files '{dataset['train_csv'].split('/')[-1]}' and "
+          f"'{dataset['dev_csv'].split('/')[-1]}' have been created; "
+          f"{len(lines[dev_split:dataset['num']])} and {dev_split}"
+          " lines have been added to each file respectively.\n")
+    
+    #Since we will test on AOLME, log how many audios are used for training
+    msg = f"I am using {num} audios for this dataset: "
+    msg += "{dataset['transcript'].split('/')[-2]}"
+    log_message(msg, misc_log, 'w', False)
+    
 def TS_check(k_words, dataset):
     '''Determine if all words in {transcript} exist in {dict}. If some word(s)
     don't exist, flag and notify.'''        
@@ -655,7 +735,39 @@ def SC_check_and_create_csv(dataset, k_words_path):
           f"has {dev_split} lines.")
     print("...finished processing Speech Commands\n")
     
-def dataset_create_csv(k_words, dataset, k_words_path):
+def AO_check(k_words, dataset):
+    '''Determine if all words in {transcript} exist in {dict}. If some word(s)
+    don't exist, flag and notify.'''        
+    #Get the list of words that are in our phonemes-dictionary
+    dict_words = pickle.load(open(dataset['dict'], "rb" ))
+    words_in_dict = list(dict_words.keys())
+    words_not_in_dict, found_here =  [], []
+    del dict_words
+    
+    print("Checking AOLME's transcript...", end='')
+    with open(dataset['transcript'], 'r') as transcr:
+        for line in transcr:
+            text = line.split('\t')[1]
+
+            for word in text.split(' '):                
+                #If word not in dictionary, save it so we can add it later
+                if word not in words_in_dict and word not in words_not_in_dict:
+                    words_not_in_dict.append(word)
+                    found_here.append(line)
+    
+    print(" ...finished")
+    if len(words_not_in_dict) != 0:
+        print(f"I found {len(words_not_in_dict)} words that are not in"
+               " our phonemes-dictionary. Such words are:")
+        
+        for idx, w in enumerate(words_not_in_dict):
+            print(f"\t- {w} found here {found_here[idx]}")
+            
+    else:
+        print("All words are in our dataset's dictionary. No manual "
+              "additions needed for this dataset.")
+
+def dataset_create_csv(k_words, dataset, k_words_path, misc_log):
     '''Since datasets are formatted in a different way, we have to iterate
     through each of them differently. Thus, we determine which dataset we are
     dealing with and run its respective functions. These functions check that
@@ -673,19 +785,17 @@ def dataset_create_csv(k_words, dataset, k_words_path):
         TI_create_csv(dataset, k_words_path)
     elif dataset['dataset_ID'] == 'SC': #Speech Commands
         SC_check_and_create_csv(dataset, k_words_path)
+    elif dataset['dataset_ID'] == 'AO_en' or dataset['dataset_ID'] == 'AO_sp':
+        AO_check(k_words, dataset)
+        AO_create_csv(dataset, k_words_path, misc_log)
     else:
         print(f"{error()} I don't know which dataset we are dealing with. "
               "Please check your datasets' IDs.")
         
-        sys.exit()
-    # TODO        
-    # if LS_data['use_dataset']:
-    #     LS_check(k_words, LS_data['transcript'], dicts['english']['path'])
-    #     LS_create_csv(LS_data, dicts['english']['path'])
-    
+        sys.exit()    
 
 def preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
-                    k_words_path):
+                    k_words_path, misc_log):
     #Check if gt folder exists
     if not os.path.isdir(gt_csvs_folder):
         os.mkdir(gt_csvs_folder)        
@@ -706,7 +816,7 @@ def preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
     #Create csv file for each dataset that we wish to use
     for dataset in datasets:
         if dataset['use_dataset']:
-            dataset_create_csv(k_words, dataset, k_words_path)
+            dataset_create_csv(k_words, dataset, k_words_path, misc_log)
         
     #Merge csvs of interest in {train_csv} and {dev_csv}.
     merge_csvs(k_words, datasets, train_csv, 'train')
