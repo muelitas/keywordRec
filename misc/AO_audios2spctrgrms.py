@@ -52,8 +52,8 @@ def check_folder(this_dir):
             
 data_root = str(Path.home()) + '/Desktop/ctc_data'
 old_transcr_path = '/media/mario/audios/AO_SP/transcript.txt'
-new_transcr_path = data_root + '/spctrgrms/clean/AO_SP/transcript.txt'
 dst_dir = data_root + '/spctrgrms/clean/AO_SP'
+new_transcr_path = dst_dir + '/transcript.txt'
 SR = 16000 #Sample Rate
 mels = 128
 thresh = 300 #If audio's duration is below this number (miliseconds), pad it
