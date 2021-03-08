@@ -49,6 +49,7 @@ start, end = 0, None
 #Set to True, those dictionaries that were used in the checkpoint
 dicts_chckpt = {'ka_dict': 1, #0=False, 1=True
                 'ts_dict': 1,
+                'ts_spang_dict': 0,
                 'ao_sp_dict': False,
                 'ao_en_dict': 0,
                 'ti_all_train_dict': False,

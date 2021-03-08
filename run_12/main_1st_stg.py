@@ -35,7 +35,7 @@ warnings.filterwarnings("ignore")
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
 FIND_LR = False #find best learning rate
-TRAIN = True #train and validate!
+TRAIN = False #train and validate!
 
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = str(Path.home()) + '/Desktop/ctc_data' #root for dicts and transcripts
@@ -62,6 +62,28 @@ TS_data = {
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': None #Set equal to None if you want to use all audios
+}
+
+TS_kwords = {
+    'dataset_ID': 'TS_kw',
+    'use_dataset': 1,
+    'dict': data_root + '/dict/ts_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TS_kwords/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ts_kw_train.csv',
+    'dev_csv': gt_csvs_folder + '/ts_kw_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': None #Set equal to None if you want to use all audios
+}
+
+TS_spang = {
+    'dataset_ID': 'TS_spang',
+    'use_dataset': 1,
+    'dict': data_root + '/dict/ts_spang_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TS_spang/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ts_spang_train.csv',
+    'dev_csv': gt_csvs_folder + '/ts_spang_dev.csv',
     'splits': [0.9, 0.1],
     'num': None #Set equal to None if you want to use all audios
 }
@@ -113,7 +135,7 @@ SC_data = {
 #AOLME's variables and paths
 AO_engl = {
     'dataset_ID': 'AO_en',
-    'use_dataset': True,
+    'use_dataset': False,
     'dict': data_root + '/dict/ao_en_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/AO_EN/transcript.txt',
     'train_csv': gt_csvs_folder + '/ao_en_train.csv',
@@ -124,7 +146,7 @@ AO_engl = {
 
 AO_span = {
     'dataset_ID': 'AO_sp',
-    'use_dataset': True,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ao_sp_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/AO_SP/transcript.txt',
     'train_csv': gt_csvs_folder + '/ao_sp_train.csv',
@@ -141,7 +163,8 @@ dictionary(ies).'''
 other_dicts = []
 
 #Specify which datasets you want to use for training
-datasets = [TS_data, KA_data, TI_train, TI_test, SC_data, AO_engl, AO_span]
+datasets = [TS_data, KA_data, TI_train, TI_test, SC_data, AO_engl, AO_span,
+            TS_spang, TS_kwords]
 #Location of "final" csvs, the ones that will be used to train and validate
 train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'

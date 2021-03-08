@@ -82,6 +82,28 @@ TS_data = {
     'num': 1000 #Set equal to None if you want to use all audios
 }
 
+TS_kwords = {
+    'dataset_ID': 'TS_kw',
+    'use_dataset': 1,
+    'dict': data_root + '/dict/ts_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TS_kwords/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ts_kw_train.csv',
+    'dev_csv': gt_csvs_folder + '/ts_kw_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': None #Set equal to None if you want to use all audios
+}
+
+TS_spang = {
+    'dataset_ID': 'TS_spang',
+    'use_dataset': 1,
+    'dict': data_root + '/dict/ts_spang_dict.pickle',
+    'transcript': data_root + '/spctrgrms/clean/TS_spang/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ts_spang_train.csv',
+    'dev_csv': gt_csvs_folder + '/ts_spang_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': None #Set equal to None if you want to use all audios
+}
+
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
@@ -157,7 +179,8 @@ dictionary(ies).'''
 other_dicts = []
 
 #Specify which datasets you want to use for training
-datasets = [TS_data, KA_data, TI_train, TI_test, SC_data]
+datasets = [TS_data, KA_data, TI_train, TI_test, SC_data, AO_engl, AO_span,
+            TS_spang, TS_kwords]
 #Location of "final" csvs, the ones that will be used to train and validate
 train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'
