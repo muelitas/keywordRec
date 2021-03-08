@@ -11,6 +11,7 @@
     translating each transcript's sentence to phonemes.
     
 ***************************************************************************''' 
+from pathlib import Path
 import pickle
 import os
 import sys
@@ -18,13 +19,14 @@ import sys
 from phonemizer import phonemize
 from phonemizer.separator import Separator
 
-root = '/media/mario/audios'
-dict_txt = root + '/dict/ts_dict.txt'
-dict_pickle = root + '/dict/ts_dict.pickle'
-transcr_path = root + '/spctrgrms/clean/TS/transcript.txt'
+
+data_root = str(Path.home()) + '/Desktop/ctc_data' 
+dict_txt = data_root + '/dict/ts_spang_dict.txt'
+dict_pickle = data_root + '/dict/ts_spang_dict.pickle'
+transcr_path = data_root + '/spctrgrms/clean/TS_spang/transcript.txt'
 #Parameters for phonemizer
 #language 'es-la' latin-america, 'es' spain, 'en-us' USA, 'en' british
-L = 'es-la'
+L = 'en-us'
 B_E = 'espeak' #back end
 c_sep = Separator(phone='_', syllable='', word=' ') #custom separator
 
