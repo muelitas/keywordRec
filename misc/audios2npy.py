@@ -15,8 +15,8 @@ import os
 import soundfile as sf
 import sys
 
-transcript = '/media/mario/audios/TI_all_train/transcript.txt'
-save_file = '/home/mario/Desktop/TI_all_train.npy'
+transcript = '/media/mario/audios/spanish_custom_kwords/transcript.txt'
+save_file = '/home/mario/Desktop/TS_kwords.npy'
 SR = 16000 #Desired sample rate for all audios
 
 #Check if {save_file} already exists. Ask if okay to continue.
