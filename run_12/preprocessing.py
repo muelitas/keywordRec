@@ -773,19 +773,20 @@ def dataset_create_csv(k_words, dataset, k_words_path, misc_log):
     dealing with and run its respective functions. These functions check that
     all words are in the dataset's dictionary and create custom csvs where
     each word is translated to IPA phonemes.'''
+    ID = dataset['dataset_ID']
     
-    if dataset['dataset_ID'] == 'TS': #TTS and gTTS
+    if ID == 'TS' or ID == 'TS_kw' or ID == 'TS_spang': #TTS and gTTS
         TS_check(k_words, dataset)
         TS_create_csv(dataset, k_words_path)
-    elif dataset['dataset_ID'] == 'KA': #Kaggle
+    elif ID == 'KA': #Kaggle
         KA_check(k_words, dataset)
         KA_create_csv(dataset, k_words_path)
-    elif dataset['dataset_ID'] == 'TI_tr' or dataset['dataset_ID'] == 'TI_te':
+    elif ID == 'TI_tr' or ID == 'TI_te':
         TI_check(k_words, dataset)
         TI_create_csv(dataset, k_words_path)
-    elif dataset['dataset_ID'] == 'SC': #Speech Commands
+    elif ID == 'SC': #Speech Commands
         SC_check_and_create_csv(dataset, k_words_path)
-    elif dataset['dataset_ID'] == 'AO_en' or dataset['dataset_ID'] == 'AO_sp':
+    elif ID == 'AO_en' or ID == 'AO_sp':
         AO_check(k_words, dataset)
         AO_create_csv(dataset, k_words_path, misc_log)
     else:
