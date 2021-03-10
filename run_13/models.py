@@ -7,14 +7,8 @@
     
 ***************************************************************************''' 
 #Source: https://colab.research.google.com/drive/1IPpwx4rX32rqHKpLz7dc8sOKspUa-YKO#scrollTo=RVJs4Bk8FjjO
-import os
-import torch
 import torch.nn as nn
-import torch.utils.data as data
-import torch.optim as optim
 import torch.nn.functional as F
-import torchaudio
-import numpy as np
 
 class BiGRU(nn.Module):
 
@@ -50,15 +44,24 @@ class SpeechRecognitionModel(nn.Module):
         self.fully_connected = nn.Linear(in_feats, hparams['gru_dim'])
         
         self.birnn_layers = BiGRU(hparams['gru_dim'], hparams['gru_hid_dim'],
-            hparams['gru_layers'], hparams['dropout'], batch_first=True)
+            hparams['gru_layers'], hparams['gru_dropout'], batch_first=True)
 
+        #Dynamiclly, set up value for classifier's out-ftrs of fc layers
+        fc_out_ftrs = 0
+        
+        if hparams['gru_hid_dim']*2 <= hparams['n_class']:
+            fc_out_ftrs = hparams['n_class']
+        else:
+            fc_out_ftrs = (hparams['gru_hid_dim']*2 - hparams['n_class']) // 2
+            fc_out_ftrs += hparams['n_class']
+        
         self.classifier = nn.Sequential(
-            nn.Linear(hparams['gru_hid_dim']*2, hparams['gru_dim']),  # birnn returns gru_hid_dim*2 (2 because bidirectional=True in nn.GRU)
+            nn.Linear(hparams['gru_hid_dim']*2, fc_out_ftrs),  # birnn returns gru_hid_dim*2 (2 because bidirectional=True in nn.GRU)
             nn.GELU(),
             nn.Dropout(hparams['dropout']),
-            nn.Linear(hparams['gru_dim'], hparams['n_class'])
+            nn.Linear(fc_out_ftrs, hparams['n_class'])
         )
-        
+
     def add_paddings(self, x):
         #Pad if necessary
         paddings = [0,0,0,0] #left, right, top, bottom

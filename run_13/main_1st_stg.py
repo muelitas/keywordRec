@@ -26,7 +26,7 @@ from models import SpeechRecognitionModel
 from preprocessing import preprocess_data, check_folder, get_mappings
 from utils import data_processing, train, dev, Metrics, log_model_information, \
     plot_and_save, log_message, find_best_lr, CUSTOM_DATASET, \
-    log_labels, log_k_words_instances, error, save_chckpnt
+    log_labels, log_k_words_instances, error, save_chckpnt, warn
 
 #TODO implement readablechars2IPA in custom dataset (or data_processing?)
 #TODO check that paths exist, particularly the ones for preprocessing
@@ -64,7 +64,7 @@ TS_data = {
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': None #Set equal to None if you want to use all audios
+    'num': 50 #Set equal to None if you want to use all audios
 }
 
 TS_kwords = {
@@ -181,14 +181,20 @@ early_stop = {'n': 12, 'p': 0.999}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 
-GRU = {'dim': [64], 'hid_dim': [64], 'layers': [2]}
-CNN1 = {'filters': [6], 'kernel': [4], 'stride':[cnstnt.CNN_STRIDE]}
-n_class = -1 #automatically sets up on Step 2
-n_mels = [128] #n_feats
-dropout = [0.1]
-learning_rate = [5e-4]
-batch_size = [2]
-epochs = [5]
+#Hyper Parameters
+HP = {  'cnn1_filters': [6],
+        'cnn1_kernel': [3],
+        'cnn1_stride': [cnstnt.CNN_STRIDE],
+        'gru_dim': [32],
+        'gru_hid_dim': [32],
+        'gru_layers': [2],
+        'gru_dropout': [0.1],
+        'n_class': [-1], #automatically sets up on Step 2
+        'n_mels': [128],
+        'dropout': [0.1], #classifier's dropout
+        'lr': [0.001], #learning rate
+        'bs': [2], #batch size
+        'epochs': [5]}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -211,14 +217,9 @@ preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
                 k_words_path, misc_log)
     
 if TRAIN or FIND_LR: #--------------------------------------------------------
-    hyper_params = {"gru_dim": GRU['dim'], "gru_hid_dim": GRU['hid_dim'],
-        "gru_layers": GRU['layers'], "cnn1_filters": CNN1['filters'],
-        "cnn1_kernel": CNN1['kernel'], "cnn1_stride": CNN1['stride'],
-        "n_class": [blank_label+1], "n_mels": n_mels, "dropout": dropout, 
-        "learning_rate": learning_rate, "batch_size": batch_size, "epochs": epochs
-    }
+    HP['n_class'][0] = blank_label+1 #Initialize number of classes (labels)
     
-    num_runs = len(list(ParameterGrid(hyper_params)))
+    num_runs = len(list(ParameterGrid(HP)))
     msg = "Training and Validation results are saved here:\n\n"
     log_message(msg, train_log, 'w', False)
     
@@ -237,8 +238,9 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     best_pers, global_best_per, best_model_wts, best_hparams = [], 2.0, {}, {}
     optimizer_state_dict, run_num, epoch_num = {}, '', ''
     
+    #Iterate through hyper parameters
     start_time = time.time()
-    for idx, hparams in enumerate(list(ParameterGrid(hyper_params))):
+    for idx, hparams in enumerate(list(ParameterGrid(HP))):
         torch.manual_seed(7)
         random.seed(7)
         msg = f"PARAMETERS [{idx+1}/{num_runs}]\n"
@@ -246,23 +248,23 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg = f"----------PARAMETERS [{idx+1}/{num_runs}]----------\n"
         log_message(msg, misc_log, 'a', False)
         
-        kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}        
+        kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}        
         train_loader = data.DataLoader(dataset=train_dataset,
-                                    batch_size=hparams['batch_size'],
+                                    batch_size=hparams['bs'],
                                     shuffle=True,
-                                    collate_fn=lambda x: data_processing(x, char2int, hparams['n_mels']),
+                                    collate_fn=lambda x: data_processing(x, char2int),
                                     **kwargs)
         dev_loader = data.DataLoader(dataset=dev_dataset,
-                                    batch_size=hparams['batch_size'],
+                                    batch_size=hparams['bs'],
                                     shuffle=True,
-                                    collate_fn=lambda x: data_processing(x, char2int, hparams['n_mels']),
+                                    collate_fn=lambda x: data_processing(x, char2int),
                                     **kwargs)
         
         model = SpeechRecognitionModel(hparams).to(device)
-        optimizer = optim.AdamW(model.parameters(), hparams['learning_rate'])
+        optimizer = optim.AdamW(model.parameters(), hparams['lr'])
         criterion = nn.CTCLoss(blank=blank_label).to(device)
-        scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['learning_rate'], 
-            steps_per_epoch=math.ceil(len(train_dataset)/hparams['batch_size']),
+        scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['lr'], 
+            steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
             epochs=hparams['epochs'], anneal_strategy='linear')
         
         if FIND_LR:
@@ -309,7 +311,8 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
             #Plot losses, cers, learning rates and save as figures
             plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.pers,
                 metrics.lrs, idx+1, logs_folder)
-                
+        
+        print(model)        
         #Delete model, collect garbage and empty CUDA memory
         #See: https://stackify.com/python-garbage-collection/
         # model.apply(weights_init)
@@ -334,7 +337,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg += f"valent to {dev_dataset.duration:.2f} seconds\n"
         msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
         msg += f"{((1-early_stop['p'])*100):.2f}%\n"
-        msg += f"Number of classes: {hyper_params['n_class']}\n"
+        msg += f"Number of classes: {HP['n_class']}\n"
         msg += f"Time Masking Coefficient: {TM}, Frequency Masking: {FM}\n"
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
         log_message(msg, train_log, 'a', True)

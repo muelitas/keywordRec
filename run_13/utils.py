@@ -453,7 +453,7 @@ def cer(reference, hypothesis, ignore_case=False, remove_space=False):
     return cer
 
 
-def data_processing(data, char2int, mels, FM=27, TM=0.125, CASE='dev'):
+def data_processing(data, char2int, FM=27, TM=0.125, CASE='dev'):
     spectrograms, labels, inp_lengths, label_lengths, filenames = [],[],[],[],[]
     
     for (spctrgrm_path, utterance) in data:   
@@ -770,7 +770,7 @@ def error():
 
 def warn():
     '''Prints 'WARNING' in orange'''
-    return cnstnt.O + "ERROR:" + cnstnt.W
+    return cnstnt.P + "WARNING:" + cnstnt.W
 
 def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
                      epoch_num):
@@ -786,42 +786,24 @@ def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
     }, save_path)
     
     return save_path
-
-# def update_model(model, new_hparams, hparams, transf_learn_all_layers):
-#     '''TODO'''
-#     #If only last layer is being modified; ensure params-to-modify are valid
-#     if not transf_learn_all_layers:
-#         for k, v in h_params.items():
-#             if v['change'] and (k!='dropout' or k!='learning_rate' or 
-#                                 k!='epochs' or k!='batch_size'):
-#                 print(f"ERROR: You are modifying '{k}' which you shouldn't "
-#                       "since you are only modifying the last layer.")
-#                 sys.exit()
-                
-#     if       
-                
-#             if k == 'dropout' and v['change']:
-#                 model.classifier[2] = nn.Dropout(v['new_val'])
-#             elif v['change']:
-#     new_hparams = {
-#     'gru_dim':      {'change': False, 'new_val': 64},
-#     'gru_hid_dim':  {'change': False, 'new_val': 64},
-#     'gru_layers':   {'change': False, 'new_val': 64},
-#     'cnn1_filters': {'change': False, 'new_val': 64},
-#     'cnn1_kernel':  {'change': False, 'new_val': 64},
-#     #'cnn1_stride':  {'change': False, 'new_val': 64}, leave it the same
-#     #'n_class':      {'change': False, 'new_val': 64}, automatically sets up
-#     'n_mels':       {'change': False, 'new_val': 64},
-#     'dropout':      {'change': False, 'new_val': 64}, #last layer dropout
-#     'learning_rate':{'change': False, 'new_val': 64},
-#     'batch_size':   {'change': False, 'new_val': 64},
-#     'epochs':       {'change': False, 'new_val': 64}
-# }
-    
-#     #Update hparams with changed parameters in new_params
-#     if bool(new_hparams):
-#         for k, v in new_hparams.items():
-#             hparams[k] = v
-    
-    
-    
+'''
+def update_cnn(CNN, MELS, GRU, model, hparams, fine_tuning):
+    ''' '''
+    if fine_tuning:
+        #Update model's CNN layer
+        model.cnn = nn.Conv2d(1, CNN['cnn1_filters'], CNN['cnn1_kernel'],
+                              stride=CNN['cnn1_stride'])
+        
+        #Update fully connected layer following the CNN
+        in_feats = CNN['cnn1_filters'] * (CNN['n_mels']//hparams['cnn1_stride'])
+        self.fully_connected = nn.Linear(in_feats, hparams['gru_dim'])
+        
+        #Update {hparams}
+            
+                               
+        in_feats = hparams['cnn1_filters'] * (hparams['n_mels']//hparams['cnn1_stride'])
+    else:
+        print(f"{error()} If you are not trying to fine tune (only change "
+              "last layer), you should not be changing the CNN layer.")
+        sys.exit()
+'''
