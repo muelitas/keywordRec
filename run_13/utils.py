@@ -99,10 +99,11 @@ def delete_contents(this_dir):
             print("Please try manually. Then, re-run this code.\n")
             sys.exit()
 
-def plot_and_save(dev_losses, train_losses, pers, lrs, run, logs_folder):
+def plot_and_save(dev_losses, train_losses, dev_pers, train_pers, lrs, run,
+                  logs_folder):
     '''In figure one, plot and save dev_losses vs train_losses. In figure two,
-    plot and save validation PERs. In figure three, plot and save progress of
-    learning rate.'''
+    plot and save validation PERs vs train PERs. In figure three, plot and
+    save progress of learning rate.'''
     file_name = f'/zRun_{str(run).zfill(3)}'
     
     #Validation and Training Losses
@@ -122,9 +123,10 @@ def plot_and_save(dev_losses, train_losses, pers, lrs, run, logs_folder):
     #Validation Phoneme Error Rates
     fig_name = logs_folder + file_name + '_PER.png'
     fig, ax = plt.subplots()  # a figure with a single Axes
-    ax.set_title(f'Run {run}: Phoneme Error Rate (PER)')
-    x = list(range(1, len(pers)+1))
-    ax.plot(x, pers, 'g--', label="Phoneme Error Rate")
+    ax.set_title(f'Run {run}: Phoneme Error Rates (PERs)')
+    x = list(range(1, len(dev_pers)+1))
+    ax.plot(x, dev_pers, 'b', label="Validation PERs")
+    ax.plot(x, train_pers, 'r', label="Train PERs")
     ax.grid(True)
     ax.set_xlabel('Epochs')
     ax.set_ylabel('PERs')
@@ -153,25 +155,27 @@ class Metrics:
         TODO
         '''
         self.train_losses = []
+        self.train_pers = []
         self.lrs = []
         self.dev_losses = []
-        self.pers = [] #Phoneme error rates
+        self.dev_pers = [] #Phoneme error rates
         self.ratio_losses = []
         
-    def add_train_metrics(self, loss, lr):
-        '''Add train loss and Learning Rate'''   
+    def add_train_metrics(self, loss, per, lr):
+        '''Add train loss, train PER and Learning Rate'''   
         self.train_losses.append(loss)
+        self.train_pers.append(per)
         self.lrs.append(lr)
         
     def add_dev_metrics(self, loss, per, ratio_loss):
         '''Add dev loss, ratio loss and PER'''   
         self.ratio_losses.append(ratio_loss)
         self.dev_losses.append(loss)
-        self.pers.append(per)
+        self.dev_pers.append(per)
         
     def get_best_cer(self):
         '''Grab best PER'''
-        return min(self.pers)
+        return min(self.dev_pers)
     
     def should_we_stop(self, epoch, early_stop):
         """If PER doesn't improve by p% in n epochs, stop training; where 
@@ -179,7 +183,7 @@ class Metrics:
         stop, msg = False, ''
         
         if(epoch >= early_stop['n']):
-            prev_pers = self.pers[-early_stop['n']:]
+            prev_pers = self.dev_pers[-early_stop['n']:]
             if(prev_pers[0] * early_stop['p'] - min(prev_pers[1:]) < 0.00001):
                 stop = True
                 msg = 'EARLY STOP due to PER | '
@@ -497,7 +501,7 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
     model.train()
     msg = f"\tEpoch: {epoch} | "
     
-    train_losses, lrs = [], []
+    train_losses, lrs, train_per = [], [], []
     for batch_idx, _data in enumerate(train_loader):
         spectrograms, labels, input_lengths, label_lengths, filenames = _data 
         spectrograms, labels = spectrograms.to(device), labels.to(device)
@@ -512,17 +516,25 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
         loss = criterion(output, labels, input_lengths, label_lengths)
         train_losses.append(loss.detach().item())
         loss.backward()
+        
+        decoded_preds, decoded_targets = GreedyDecoder(output.transpose(0, 1),
+                labels, label_lengths, blank_label, int2char)
+        
+        for j in range(len(decoded_preds)):
+                train_per.append(cer(decoded_targets[j], decoded_preds[j]))
        
         lrs.append(scheduler.get_lr()[0])        
         optimizer.step()
-        scheduler.step()
-            
+        # scheduler.step()
+    
+    avg_per = sum(train_per)/len(train_per)        
     train_loss = sum(train_losses) / len(train_losses) #epoch's average loss
     avg_lr = sum(lrs) / len(lrs)
-    losses.add_train_metrics(train_loss, avg_lr)
+    losses.add_train_metrics(train_loss, avg_per, avg_lr)
     
     msg += f"Train Avg Loss: {train_loss:.4f}\n"
     log_message(msg, log_file, 'a', True)
+    scheduler.step()
             
 def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
         int2char, char2ipa, metrics):
@@ -533,7 +545,7 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
     step = batches_num//2 + 1
     
     model.eval()
-    dev_losses, dev_cer, dev_wer = [], [], []
+    dev_losses, dev_per, dev_wer = [], [], []
     decoded_preds, decoded_targets, MSG = [], [], ''
     
     msg = f"\tEpoch: {epoch} | "
@@ -564,19 +576,19 @@ def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
                     MSG += f"{target_ipas[k]}' -> '{predicted_ipas[k]}'\n"
             
             for j in range(len(decoded_preds)):
-                dev_cer.append(cer(decoded_targets[j], decoded_preds[j]))
+                dev_per.append(cer(decoded_targets[j], decoded_preds[j]))
                 dev_wer.append(wer(decoded_targets[j], decoded_preds[j]))
 
-    avg_cer = sum(dev_cer)/len(dev_cer)
+    avg_per = sum(dev_per)/len(dev_per)
     avg_wer = sum(dev_wer)/len(dev_wer)
     dev_loss = sum(dev_losses) / len(dev_losses) #epoch's average loss
     ratio_loss = dev_loss / metrics.train_losses[epoch-1]
     msg += f"Dev Avg Loss: {dev_loss:.4f} | Ratio Loss: {ratio_loss:.4f} | "
-    msg += f"Avg PER: {avg_cer:.4f} | Avg WER: {avg_wer:.4f}\n"
+    msg += f"Avg PER: {avg_per:.4f} | Avg WER: {avg_wer:.4f}\n"
     
     log_message(msg, log_file, 'a', True)
     log_message(MSG, log_file, 'a', True)
-    metrics.add_dev_metrics(dev_loss, avg_cer, ratio_loss)
+    metrics.add_dev_metrics(dev_loss, avg_per, ratio_loss)
 
 class CUSTOM_DATASET(Dataset):
     """

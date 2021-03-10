@@ -192,9 +192,11 @@ HP = {  'cnn1_filters': [6],
         'n_class': [-1], #automatically sets up on Step 2
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'lr': [0.001], #learning rate
+        'lr': [0.005], #learning rate
         'bs': [2], #batch size
-        'epochs': [5]}
+        'epochs': [10]}
+
+gamma = 0.95 #for learning scheduler
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -263,9 +265,10 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         model = SpeechRecognitionModel(hparams).to(device)
         optimizer = optim.AdamW(model.parameters(), hparams['lr'])
         criterion = nn.CTCLoss(blank=blank_label).to(device)
-        scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['lr'], 
-            steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
-            epochs=hparams['epochs'], anneal_strategy='linear')
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma = gamma)
+        # scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['lr'], 
+        #     steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
+        #     epochs=hparams['epochs'], anneal_strategy='linear')
         
         if FIND_LR:
             find_best_lr(model, criterion, optimizer, train_loader, start_lr,
@@ -284,7 +287,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
                     train_log, blank_label, int2char, char2ipa, metrics)
                 
                 #If current PER is lower than best global PER, copy the model
-                epoch_per = metrics.pers[-1]
+                epoch_per = metrics.dev_pers[-1]
                 if epoch_per < global_best_per:
                     global_best_per = epoch_per
                     best_model_wts = copy.deepcopy(model.state_dict())
@@ -302,17 +305,16 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
             best_pers.append(local_best_per)
             
             msg = MSG + f"Best PER: {local_best_per:.4f} on Epoch "
-            msg += f"{metrics.pers.index(local_best_per) + 1}"
+            msg += f"{metrics.dev_pers.index(local_best_per) + 1}"
             log_message(msg + '\n\n', train_log, 'a', True)
             
             #Log model summary, # of parameters, hyper parameters and more
             num_params = log_model_information(misc_log, model, hparams)
                 
             #Plot losses, cers, learning rates and save as figures
-            plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.pers,
-                metrics.lrs, idx+1, logs_folder)
+            plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.dev_pers,
+                metrics.train_pers, metrics.lrs, idx+1, logs_folder)
         
-        print(model)        
         #Delete model, collect garbage and empty CUDA memory
         #See: https://stackify.com/python-garbage-collection/
         # model.apply(weights_init)
