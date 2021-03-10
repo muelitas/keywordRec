@@ -178,8 +178,10 @@ class Metrics:
         return min(self.dev_pers)
     
     def should_we_stop(self, epoch, early_stop):
-        """If PER doesn't improve by p% in n epochs, stop training; where 
-        n = early_stop['n'] and p = (1-early_stop['p'])*100"""
+        """If PER doesn't improve by %p in n epochs, stop training; where 
+        n = early_stop['n'] and p = (1-early_stop['p'])*100. On the other
+        hand, if we have overfitting above t for n epochs, stop training.
+        Where t = early_stop['t']."""
         stop, msg = False, ''
         
         if(epoch >= early_stop['n']):
@@ -188,6 +190,14 @@ class Metrics:
                 stop = True
                 msg = 'EARLY STOP due to PER | '
             
+            #n previous ratio losses
+            ratio_losses = self.ratio_losses[-early_stop['n']:]
+            #If all of them are above threshold t, stop due to overfitting
+            counter = [1 if i > early_stop['t'] else 0 for i in ratio_losses]
+            if sum(counter) == early_stop['n']:
+                stop = True
+                msg = 'EARLY STOP due to OVERFIT | '
+                
         return stop, msg
             
 def chars_to_int(text, char2int):

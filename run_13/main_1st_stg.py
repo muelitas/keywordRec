@@ -64,7 +64,7 @@ TS_data = {
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 50 #Set equal to None if you want to use all audios
+    'num': 250 #Set equal to None if you want to use all audios
 }
 
 TS_kwords = {
@@ -177,12 +177,12 @@ max_lr = 1.0
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 12, 'p': 0.999}
+early_stop = {'n': 8, 'p': 0.999, 't': 1.0}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 
 #Hyper Parameters
-HP = {  'cnn1_filters': [6],
+HP = {  'cnn1_filters': [4],
         'cnn1_kernel': [3],
         'cnn1_stride': [cnstnt.CNN_STRIDE],
         'gru_dim': [32],
@@ -192,9 +192,9 @@ HP = {  'cnn1_filters': [6],
         'n_class': [-1], #automatically sets up on Step 2
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'lr': [0.005], #learning rate
+        'lr': [0.005, 0.0009], #learning rate
         'bs': [2], #batch size
-        'epochs': [10]}
+        'epochs': [50]}
 
 gamma = 0.95 #for learning scheduler
 
@@ -338,7 +338,9 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg += f"In all runs, dev set had {len(dev_dataset)} audio files; equi"
         msg += f"valent to {dev_dataset.duration:.2f} seconds\n"
         msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
-        msg += f"{((1-early_stop['p'])*100):.2f}%\n"
+        msg += f"{((1-early_stop['p'])*100):.2f}%\n\tOverfit Threshold: "
+        msg += f"{early_stop['t']:.2f}\n"
+        msg += f"Gamma value for learning rate is: {gamma}\n"
         msg += f"Number of classes: {HP['n_class']}\n"
         msg += f"Time Masking Coefficient: {TM}, Frequency Masking: {FM}\n"
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
