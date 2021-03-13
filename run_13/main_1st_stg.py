@@ -198,7 +198,7 @@ max_lr = 1.0
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 8, 'p': 0.999, 't': 1.0}
+early_stop = {'n': 8, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 
@@ -361,7 +361,8 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg += f"valent to {dev_dataset.duration:.2f} seconds\n"
         msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
         msg += f"{((1-early_stop['p'])*100):.2f}%\n\tOverfit Threshold: "
-        msg += f"{early_stop['t']:.2f}\n"
+        msg += f"{early_stop['t']:.2f}\n\tNumber of epochs to wait: "
+        msg += f"{early_stop['w']}\n"
         msg += f"Number of classes: {HP['n_class']}\n"
         msg += f"Time Masking Coefficient: {TM}, Frequency Masking: {FM}\n"
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"

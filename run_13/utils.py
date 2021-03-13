@@ -182,10 +182,11 @@ class Metrics:
         """If PER doesn't improve by %p in n epochs, stop training; where 
         n = early_stop['n'] and p = (1-early_stop['p'])*100. On the other
         hand, if we have overfitting above t for n epochs, stop training.
-        Where t = early_stop['t']."""
+        Where t = early_stop['t']. Start checking for early stop once w epochs
+        have passed; where w = early_stop['w']"""
         stop, msg = False, ''
         
-        if(epoch >= early_stop['n']):
+        if(epoch >= early_stop['w']):
             prev_pers = self.dev_pers[-early_stop['n']:]
             if(prev_pers[0] * early_stop['p'] - min(prev_pers[1:]) < 0.00001):
                 stop = True
