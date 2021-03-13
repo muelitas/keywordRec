@@ -68,7 +68,7 @@ TS_data = {
 }
 
 TSx4 = {
-    'dataset_ID': 'TS',
+    'dataset_ID': 'TSx4',
     'use_dataset': 1,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/pyroom/TSx4/transcript.txt',
@@ -214,10 +214,9 @@ HP = {  'cnn1_filters': [4],
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
         'lr': [3e-4], #learning rate
+        'G': [0.96], #Gamma, for learning scheduler
         'bs': [2], #batch size
         'epochs': [2]}
-
-gamma = 0.96 #for learning scheduler
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -286,12 +285,14 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         model = SpeechRecognitionModel(hparams).to(device)
         optimizer = optim.AdamW(model.parameters(), hparams['lr'])
         criterion = nn.CTCLoss(blank=blank_label).to(device)
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma = gamma)
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma = HP['G'])
         # scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['lr'], 
         #     steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
         #     epochs=hparams['epochs'], anneal_strategy='linear')
         
         if FIND_LR:
+            num_params = sum([param.nelement() for param in model.parameters()])
+            print(f"Number of parameters in model is: '{num_params}'")
             find_best_lr(model, criterion, optimizer, train_loader, start_lr,
                 max_lr, device)
         
@@ -361,7 +362,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
         msg += f"{((1-early_stop['p'])*100):.2f}%\n\tOverfit Threshold: "
         msg += f"{early_stop['t']:.2f}\n"
-        msg += f"Gamma value for learning rate is: {gamma}\n"
+        msg += f"Gamma value for learning rate is: {HP['G']}\n"
         msg += f"Number of classes: {HP['n_class']}\n"
         msg += f"Time Masking Coefficient: {TM}, Frequency Masking: {FM}\n"
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
