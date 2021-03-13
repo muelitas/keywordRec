@@ -285,7 +285,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         model = SpeechRecognitionModel(hparams).to(device)
         optimizer = optim.AdamW(model.parameters(), hparams['lr'])
         criterion = nn.CTCLoss(blank=blank_label).to(device)
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma = HP['G'])
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma = hparams['G'])
         # scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['lr'], 
         #     steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
         #     epochs=hparams['epochs'], anneal_strategy='linear')
@@ -362,7 +362,6 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
         msg += f"{((1-early_stop['p'])*100):.2f}%\n\tOverfit Threshold: "
         msg += f"{early_stop['t']:.2f}\n"
-        msg += f"Gamma value for learning rate is: {HP['G']}\n"
         msg += f"Number of classes: {HP['n_class']}\n"
         msg += f"Time Masking Coefficient: {TM}, Frequency Masking: {FM}\n"
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
