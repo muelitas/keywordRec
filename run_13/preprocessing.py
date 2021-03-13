@@ -160,6 +160,8 @@ def TS_create_csv(dataset, k_words_path):
     lines = f.readlines()
     f.close()
     
+    random.shuffle(lines)
+    
     #If desired number of audios to use exceeds available audios, give warning
     if((dataset['num'] != None) and (dataset['num'] >= len(lines))):
         print(f"\nWARNING: {dataset['num']} is out of range for TS's dataset."
@@ -170,9 +172,6 @@ def TS_create_csv(dataset, k_words_path):
     #Determine how many samples I will need for validation
     num = len(lines) if dataset['num'] == None else dataset['num']
     dev_split = int(dataset['splits'][1] * num)
-    
-    #No need to shuffle here. I shuffled back when I merged TTS and gTTS and
-    #am shuffling in Batch Sampler.
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
     f = open(dataset['train_csv'], 'w')
@@ -226,10 +225,10 @@ def KA_create_csv(dataset, k_words_path):
     lines = f.readlines()
     f.close()
     
+    random.shuffle(lines)
+    
     #Determine how many samples I will need for validation
     dev_split = int(dataset['splits'][1] * len(lines))
-    
-    #BTW, no need to shuffle. I am shuffling in dataloaders
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
     f = open(dataset['train_csv'], 'w')
@@ -292,6 +291,8 @@ def TI_create_csv(dataset, k_words_path):
     f = open(dataset['transcript'], 'r')
     lines = f.readlines()
     f.close()
+    
+    random.shuffle(lines)
     
     #Determine how many samples I will need for validation
     dev_split = int(dataset['splits'][1] * len(lines))
@@ -357,6 +358,8 @@ def LS_create_csv(LS_data, phones_dict):
     lines = f.readlines()
     f.close()
     
+    random.shuffle(lines)
+    
     #If desired number of audios-to-use exceeds available audios, give warning
     if((LS_data['num'] != None) and (LS_data['num'] >= len(lines))):
         print(f"\nWARNING: {LS_data['num']} is out of range for TS's dataset."
@@ -367,9 +370,6 @@ def LS_create_csv(LS_data, phones_dict):
     #Determine how many samples I will need for validation
     num = len(lines) if LS_data['num'] == None else LS_data['num']
     dev_split = int(LS_data['splits'][1] * num)
-    
-    #BTW, no need to shuffle. I got audios randomly and I am shuffling in
-    #dataloaders
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
     f = open(LS_data['train_csv'], 'w')
@@ -420,6 +420,8 @@ def AO_create_csv(dataset, k_words_path, misc_log):
     lines = f.readlines()
     f.close()
     
+    random.shuffle(lines)
+    
     #If desired number of audios to use exceeds available audios, give warning
     if((dataset['num'] != None) and (dataset['num'] >= len(lines))):
         print(f"\nWARNING: {dataset['num']} is out of range for AO's dataset."
@@ -430,8 +432,6 @@ def AO_create_csv(dataset, k_words_path, misc_log):
     #Determine how many samples I will need for validation
     num = len(lines) if dataset['num'] == None else dataset['num']
     dev_split = int(dataset['splits'][1] * num)
-    
-    #No need to shuffle here. I am shuffling in Batch Sampler.
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
     f = open(dataset['train_csv'], 'w')
@@ -670,7 +670,6 @@ def SC_check_and_create_csv(dataset, k_words_path):
         F.close()
     
     #Shuffle lines that will be used for training and validation
-    random.seed(7)
     random.shuffle(new_lines)
     
     #Determine how many samples I will need for validation
@@ -775,10 +774,11 @@ def dataset_create_csv(k_words, dataset, k_words_path, misc_log):
     each word is translated to IPA phonemes.'''
     ID = dataset['dataset_ID']
     
-    if ID == 'TS' or ID == 'TS_kw' or ID == 'TS_spang': #TTS and gTTS
+    if ID == 'TS' or ID == 'TS_kw' or ID == 'TS_spang' or ID == 'TSx4':
+        #TTS and gTTS
         TS_check(k_words, dataset)
         TS_create_csv(dataset, k_words_path)
-    elif ID == 'KA': #Kaggle
+    elif ID == 'KA' or ID == 'KAx4': #Kaggle
         KA_check(k_words, dataset)
         KA_create_csv(dataset, k_words_path)
     elif ID == 'TI_tr' or ID == 'TI_te':

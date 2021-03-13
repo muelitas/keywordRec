@@ -25,6 +25,7 @@ import torchaudio
 from torchaudio import transforms as tforms
 
 import constants as cnstnt
+from models import BiGRU
 
 def log_model_information(log_file, model, hparams):
     '''Log model summary, # of parameters, hyper parameters and more'''
@@ -533,7 +534,7 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
         for j in range(len(decoded_preds)):
                 train_per.append(cer(decoded_targets[j], decoded_preds[j]))
        
-        lrs.append(scheduler.get_lr()[0])        
+        lrs.append(scheduler.get_last_lr()[0])        
         optimizer.step()
         # scheduler.step()
     
@@ -808,24 +809,114 @@ def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
     }, save_path)
     
     return save_path
-'''
-def update_cnn(CNN, MELS, GRU, model, hparams, fine_tuning):
-    ''' '''
-    if fine_tuning:
-        #Update model's CNN layer
-        model.cnn = nn.Conv2d(1, CNN['cnn1_filters'], CNN['cnn1_kernel'],
-                              stride=CNN['cnn1_stride'])
+
+def update_cnn(CNN, GRU, model, hparams, oparams):
+    """If specified, edit the configuration of our models' CNN layer. If not,
+    freeze its parameters."""
+    if CNN['change']: #If CNN is being changed:
+        #Modify CNN; append parameters to optimize
+        model.cnn = nn.Conv2d(1, CNN['cnn1_filters'], CNN['cnn1_kernel'], 
+            stride=CNN['cnn1_stride'])
+        oparams += model.cnn.parameters()
+        #If I modify CNN, I have to modify fc layer that comes next
+        in_feats = CNN['cnn1_filters'] * (hparams['n_mels']//CNN['cnn1_stride'])
+        #Keep GRU dimensions used in checkpoint
+        model.fully_connected = nn.Linear(in_feats, hparams['gru_dim'])
+        #If GRU isn't changed, append parameters to optimize here
+        if not GRU['change']:
+            oparams += model.fully_connected.parameters()
+            #Otherwise, do it in GRU function
         
-        #Update fully connected layer following the CNN
-        in_feats = CNN['cnn1_filters'] * (CNN['n_mels']//hparams['cnn1_stride'])
-        self.fully_connected = nn.Linear(in_feats, hparams['gru_dim'])
+        #Update {hparams} variable with values in {CNN} variable
+        for k, v in CNN.items():
+            if k in hparams.keys():
+                hparams[k] = v
+                
+        print("\tDone...CNN layer modified; 'hparams' updated")
+    
+    else: #If it is not being changed, freeze its parameters
+        # for name, param in model.named_parameters():
+        for idx, param in enumerate(model.cnn.parameters()):
+            param.requires_grad = False
         
-        #Update {hparams}
+        print(f'\tDone...Froze {idx+1} parameters in CNN layer(s)')
+
+    return model, hparams, oparams
+
+def update_bigru(CNN, GRU, model, hparams, oparams):
+    """If specified, edit the configuration of our models' GRU layers. If not,
+    freeze their parameters."""
+    if GRU['change']: #If Bi-GRU is being changed:
+        #First, modify output features of cnn's fully connected layer
+        in_feats = model.fully_connected.in_features
+        model.fully_connected = nn.Linear(in_feats, GRU['gru_dim'])
+        #Append to list of parameters to optimize
+        oparams += model.fully_connected.parameters()
+        #Then, modify bidirectional recurrent neural nets
+        model.birnn_layers = BiGRU(GRU['gru_dim'], GRU['gru_hid_dim'],
+            GRU['gru_layers'], GRU['gru_dropout'], batch_first=True)
+        oparams += model.birnn_layers.parameters()
+        #Update {hparams} variable with values in {GRU} variable
+        for k, v in GRU.items():
+            if k in hparams.keys():
+                hparams[k] = v
+        
+        print("\tDone...CNN's Fully Conn. Layer modified")
+        print("\tDone...GRU layers modified; 'hparams' updated")
+    
+    else: #If it is not being changed, freeze its parameters
+        #If CNN didn't change, we update first fully connected layer
+        if not CNN['change']:
+            for idx, param in enumerate(model.fully_connected.parameters()):
+                param.requires_grad = False
+                
+            print(f"\tDone...Froze {idx+1} params in CNN's Fully Conn. Layer")
+                
+        #Freeze 'birnn' parameters
+        for idx, param in enumerate(model.birnn_layers.parameters()):
+            param.requires_grad = False
+        
+        print(f'\tDone...Froze {idx+1} parameters in GRU layer(s)')
+
+    return model, hparams, oparams
+
+def update_classifier(GRU, model, hparams, oparams):
+    """If specified, edit the configuration of our models' classifier. If not,
+    freeze parameters, except for the very last layer."""
+    fc1_out_ftrs = model.classifier[3].in_features #same as fc2_in_ftrs
+    
+    #If GRU changed, update first fully connected layer
+    if GRU['change']:
+        fc1_in_ftrs = hparams['gru_hid_dim']*2
+        fc1_out_ftrs = 0
+        if fc1_in_ftrs <= hparams['n_class']:
+            fc1_out_ftrs = hparams['n_class']
+        else:
+            fc1_out_ftrs = (fc1_in_ftrs - hparams['n_class']) // 2
+            fc1_out_ftrs += hparams['n_class']
             
-                               
-        in_feats = hparams['cnn1_filters'] * (hparams['n_mels']//hparams['cnn1_stride'])
-    else:
-        print(f"{error()} If you are not trying to fine tune (only change "
-              "last layer), you should not be changing the CNN layer.")
-        sys.exit()
-'''
+        model.classifier[0] = nn.Linear(fc1_in_ftrs, fc1_out_ftrs)
+        oparams += model.classifier[0].parameters()
+        print("\tDone...Fully Connected Layer 1 modified")
+        
+    else: #if it didn't, freeze the fully connected layer
+        for idx, param in enumerate(model.classifier[0].parameters()):
+            param.requires_grad = False
+        
+        print(f'\tDone...Froze {idx+1} parameters in Fully Conn. Layer 1')
+    
+    #If classifier's dropout changed, update it
+    if model.classifier[2].p != hparams['dropout']:
+        model.classifier[2].p = hparams['dropout']
+        print("\tDone...Classifier's dropout has been updated")
+        
+    if fc1_out_ftrs < hparams['n_class']:
+        print(f"\t{warn()} Number of input features in last fully conn. layer"
+              f" ({fc1_out_ftrs}) is smaller than number of classes "
+              f"({hparams['n_class']})")
+        
+    #No matter what, we want the last fully conn. layer to be updated
+    model.classifier[3] = nn.Linear(fc1_out_ftrs, hparams['n_class'])
+    oparams += model.classifier[3].parameters()
+    print("\tDone...Last Layer modified")
+    return model, oparams

@@ -58,13 +58,24 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': 1,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 250 #Set equal to None if you want to use all audios
+    'num': 1000 #Set equal to None if you want to use all audios
+}
+
+TSx4 = {
+    'dataset_ID': 'TS',
+    'use_dataset': 1,
+    'dict': data_root + '/dict/ts_dict.pickle',
+    'transcript': data_root + '/spctrgrms/pyroom/TSx4/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ts_x4_train.csv',
+    'dev_csv': gt_csvs_folder + '/ts_x4_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': 1000 #Set equal to None if you want to use all audios
 }
 
 TS_kwords = {
@@ -97,6 +108,16 @@ KA_data = {
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_dev.csv',
+    'splits': [0.9, 0.1]
+}
+#
+KAx4 = {
+    'dataset_ID': 'KAx4',
+    'use_dataset': 0,
+    'dict': data_root + '/dict/ka_dict.pickle',
+    'transcript': data_root + '/spctrgrms/pyroom/KAx4/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ka_x4_train.csv',
+    'dev_csv': gt_csvs_folder + '/ka_x4_dev.csv',
     'splits': [0.9, 0.1]
 }
 
@@ -165,7 +186,7 @@ other_dicts = []
 
 #Specify which datasets you want to use for training
 datasets = [TS_data, KA_data, TI_train, TI_test, SC_data, AO_engl, AO_span,
-            TS_spang, TS_kwords]
+            TS_spang, TS_kwords, TSx4, KAx4]
 #Location of "final" csvs, the ones that will be used to train and validate
 train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'
@@ -192,11 +213,11 @@ HP = {  'cnn1_filters': [4],
         'n_class': [-1], #automatically sets up on Step 2
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'lr': [0.005, 0.0009], #learning rate
+        'lr': [3e-4], #learning rate
         'bs': [2], #batch size
-        'epochs': [50]}
+        'epochs': [2]}
 
-gamma = 0.95 #for learning scheduler
+gamma = 0.96 #for learning scheduler
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -215,6 +236,7 @@ ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings(datasets,
     
 # PREPROCESSING --------------------------------------------------------------
 #In a nutchell: check audios and create csvs for training
+random.seed(7)
 preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
                 k_words_path, misc_log)
     
@@ -244,7 +266,6 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     start_time = time.time()
     for idx, hparams in enumerate(list(ParameterGrid(HP))):
         torch.manual_seed(7)
-        random.seed(7)
         msg = f"PARAMETERS [{idx+1}/{num_runs}]\n"
         log_message(msg, train_log, 'a', True)
         msg = f"----------PARAMETERS [{idx+1}/{num_runs}]----------\n"
