@@ -18,7 +18,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.utils.data as data
-import torch.optim as optim
+from torch.optim import lr_scheduler as lr_sched
 import warnings
 
 import constants as cnstnt
@@ -35,8 +35,9 @@ warnings.filterwarnings("ignore")
 
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
-FIND_LR = False #find best learning rate
-TRAIN = True #train and validate!
+FIND_LR = 0 #find best learning rate
+TRAIN = 1 #train and validate!
+LR = '1' #'E' for exponential or for steady, '1' for one cycle
 
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = str(Path.home()) + '/Desktop/ctc_data' #root for dicts and transcripts
@@ -58,24 +59,24 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': 0,
+    'use_dataset': 1,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 1000 #Set equal to None if you want to use all audios
+    'num': 20 #Set equal to None if you want to use all audios
 }
 
 TSx4 = {
     'dataset_ID': 'TSx4',
-    'use_dataset': 1,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/pyroom/TSx4/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_x4_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_x4_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 1000 #Set equal to None if you want to use all audios
+    'num': 100 #Set equal to None if you want to use all audios
 }
 
 TS_kwords = {
@@ -192,34 +193,38 @@ train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'
 
 #FIND_LR-----------------------------------------------------------------------
-start_lr = 3e-5
-max_lr = 1.0
+start_lr = 3e-6
+max_lr = 0.1
 
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 8, 'p': 0.999, 't': 1.0, 'w': 8}
+early_stop = {'n': 6, 'p': 0.999, 't': 1.1, 'w': 40}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 
 #Hyper Parameters
-HP = {  'cnn1_filters': [4],
+HP = {  'cnn1_filters': [16],
         'cnn1_kernel': [3],
         'cnn1_stride': [cnstnt.CNN_STRIDE],
         'gru_dim': [32],
         'gru_hid_dim': [32],
-        'gru_layers': [2],
+        'gru_layers': [3],
         'gru_dropout': [0.1],
         'n_class': [-1], #automatically sets up on Step 2
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
         'lr': [3e-4], #learning rate
-        'G': [0.96], #Gamma, for learning scheduler
+        'G': [1], #Gamma, for learning scheduler; set to 1 for steady LR
         'bs': [2], #batch size
-        'epochs': [2]}
+        'epochs': [10]}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
+#If learning rate scheduler is not 'exponential', ignore gamma parameter
+if LR != 'E':
+    HP['G'][0] = -1
+
 #Make sure that assumed-path-to-desktop exists
 if not os.path.exists(runs_root):
     print(f"{error()} I assumed your desktop's path was {runs_root}"
@@ -274,7 +279,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         train_loader = data.DataLoader(dataset=train_dataset,
                                     batch_size=hparams['bs'],
                                     shuffle=True,
-                                    collate_fn=lambda x: data_processing(x, char2int),
+                                    collate_fn=lambda x: data_processing(x, char2int, FM, TM, 'train'),
                                     **kwargs)
         dev_loader = data.DataLoader(dataset=dev_dataset,
                                     batch_size=hparams['bs'],
@@ -283,12 +288,14 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
                                     **kwargs)
         
         model = SpeechRecognitionModel(hparams).to(device)
-        optimizer = optim.AdamW(model.parameters(), hparams['lr'])
+        optimizer = torch.optim.AdamW(model.parameters(), hparams['lr'])
         criterion = nn.CTCLoss(blank=blank_label).to(device)
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma = hparams['G'])
-        # scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['lr'], 
-        #     steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
-        #     epochs=hparams['epochs'], anneal_strategy='linear')
+        if LR == 'E':
+            scheduler = lr_sched.ExponentialLR(optimizer, gamma = hparams['G'])
+        else:
+            scheduler = lr_sched.OneCycleLR(optimizer, max_lr=hparams['lr'], 
+                steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
+                epochs=hparams['epochs'], anneal_strategy='linear')
         
         if FIND_LR:
             num_params = sum([param.nelement() for param in model.parameters()])
@@ -301,7 +308,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
             MSG = '\t'
             
             for epoch in range(1, hparams['epochs'] + 1):
-                train(model, device, train_loader, criterion, optimizer,
+                train(model, device, train_loader, criterion, optimizer, LR,
                     scheduler, epoch, train_log, blank_label, int2char, char2ipa, 
                     metrics)
                 
@@ -340,7 +347,8 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         #Delete model, collect garbage and empty CUDA memory
         #See: https://stackify.com/python-garbage-collection/
         # model.apply(weights_init)
-        del model, criterion, scheduler, optimizer
+        del model, criterion, optimizer, scheduler
+        
         gc.collect()
         torch.cuda.empty_cache()
     
@@ -353,6 +361,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         msg = f"\nBest PER of all was {min(best_pers):.4f} on run "
         msg += f"{best_pers.index(min(best_pers)) + 1}\n"
         msg += f"Checkpoint has been saved here: {chckpnt_path}\n"
+        msg += f"Scheduler used in this run(s) was: '{LR}'\n"
         msg += f"Number of parameters in model: {num_params}\n"
         msg += "Are we using masking during training? 'Yes'\n"
         msg += f"In all runs, training set had {len(train_dataset)} audio files "

@@ -14,18 +14,25 @@ import numpy as np
 import os
 import pickle
 import random
-from random import randint
 import shutil
 import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, Sampler
-import torchaudio
 from torchaudio import transforms as tforms
 
 import constants as cnstnt
 from models import BiGRU
+
+def plot_spctrgrm(title, spctrgrm):
+    '''Plot spctrgrm with specified {title}'''
+    fig, ax = plt.subplots()  # a figure with a single Axes
+    ax.set_title(title)
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Frequency")
+    plt.imshow(spctrgrm.log2()[0,:,:].detach().numpy(), cmap='viridis')
+    plt.show()    
 
 def log_model_information(log_file, model, hparams):
     '''Log model summary, # of parameters, hyper parameters and more'''
@@ -508,14 +515,14 @@ def GreedyDecoder(output, labels, label_lengths, blank_label, int2char, collapse
 	return decodes, targets
 
 
-def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
-          log_file, blank_label, int2char, char2ipa, losses):
+def train(model, device, train_loader, criterion, optimizer, LR, scheduler,
+          epoch, log_file, blank_label, int2char, char2ipa, losses):
     model.train()
     msg = f"\tEpoch: {epoch} | "
     
     train_losses, lrs, train_per = [], [], []
     for batch_idx, _data in enumerate(train_loader):
-        spectrograms, labels, input_lengths, label_lengths, filenames = _data 
+        spectrograms, labels, input_lengths, label_lengths, filenames = _data
         spectrograms, labels = spectrograms.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -537,7 +544,8 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
        
         lrs.append(scheduler.get_last_lr()[0])        
         optimizer.step()
-        # scheduler.step()
+        if LR == '1': #Use for oneCycleLR scheduler
+            scheduler.step()
     
     avg_per = sum(train_per)/len(train_per)        
     train_loss = sum(train_losses) / len(train_losses) #epoch's average loss
@@ -546,7 +554,8 @@ def train(model, device, train_loader, criterion, optimizer, scheduler, epoch,
     
     msg += f"Train Avg Loss: {train_loss:.4f}\n"
     log_message(msg, log_file, 'a', True)
-    scheduler.step()
+    if LR == 'E': #Use for exponentialLR scheduler
+        scheduler.step()
             
 def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
         int2char, char2ipa, metrics):
