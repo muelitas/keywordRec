@@ -37,12 +37,12 @@ warnings.filterwarnings("ignore")
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
 FIND_LR = 0 #find best learning rate
 TRAIN = 1 #train and validate!
-LR = '1' #'E' for exponential or for steady, '1' for one cycle
+LR = 'E' #'E' for exponential or for steady, '1' for one cycle
 
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = str(Path.home()) + '/Desktop/ctc_data' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = runs_root + '/dummy/stg1'
+logs_folder = runs_root + '/xKAx4_80E/stg1'
 misc_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -59,13 +59,13 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': 1,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 20 #Set equal to None if you want to use all audios
+    'num': 200 #Set equal to None if you want to use all audios
 }
 
 TSx4 = {
@@ -114,7 +114,7 @@ KA_data = {
 #
 KAx4 = {
     'dataset_ID': 'KAx4',
-    'use_dataset': 0,
+    'use_dataset': 1,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/pyroom/KAx4/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_x4_train.csv',
@@ -199,7 +199,7 @@ max_lr = 0.1
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 6, 'p': 0.999, 't': 1.1, 'w': 40}
+early_stop = {'n': 4, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 
@@ -207,17 +207,20 @@ FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 HP = {  'cnn1_filters': [16],
         'cnn1_kernel': [3],
         'cnn1_stride': [cnstnt.CNN_STRIDE],
-        'gru_dim': [32],
-        'gru_hid_dim': [32],
-        'gru_layers': [3],
+        'gru_dim': [64],
+        'gru_hid_dim': [64],
+        'gru_layers': [8],
         'gru_dropout': [0.1],
         'n_class': [-1], #automatically sets up on Step 2
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'lr': [3e-4], #learning rate
-        'G': [1], #Gamma, for learning scheduler; set to 1 for steady LR
+        'lr': [2.8e-4], #learning rate
+        'G': [0.977], #Gamma, for learning scheduler; set to 1 for steady LR
         'bs': [2], #batch size
-        'epochs': [10]}
+        'epochs': [80]}
+#'dev' means no spec augment during training
+#'train' means to train with spec augment
+specAug = 'dev' 
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -279,7 +282,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         train_loader = data.DataLoader(dataset=train_dataset,
                                     batch_size=hparams['bs'],
                                     shuffle=True,
-                                    collate_fn=lambda x: data_processing(x, char2int, FM, TM, 'train'),
+                                    collate_fn=lambda x: data_processing(x, char2int, FM, TM, specAug),
                                     **kwargs)
         dev_loader = data.DataLoader(dataset=dev_dataset,
                                     batch_size=hparams['bs'],

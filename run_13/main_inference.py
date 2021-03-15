@@ -31,12 +31,12 @@ warnings.filterwarnings("ignore")
 #Root location of logs, plots and checkpoints
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 #Root location of spectrograms and dictionaries
-data_root = str(Path.home()) + '/Desktop/ctc_data' 
+data_root = str(Path.home()) + '/Desktop/ctc_data'
 
-par_dir = 'TSall_KAall_120E_ML2' #name of run
+par_dir = 'ML2_KAx4_60E3Run3Rerun' #name of run
 stg_dir = 'stg1'
-chckpnt = 'checkpoint_onRun01onEpoch084.tar'
-logfile = 'inferences_on_dummy.txt'
+chckpnt = 'checkpoint_onRun01onEpoch040.tar'
+logfile = 'inferences_on_AO_sp_all.txt'
 
 #Transcript that will be "inferenced" and the respective dictionary
 transcr_path = data_root + '/spctrgrms/clean/AO_SP/transcript.txt'

@@ -10,6 +10,7 @@
 ***************************************************************************''' 
 import copy 
 import gc
+import math
 import os
 from os.path import join as pj #pj stands for path.join
 from pathlib import Path
@@ -22,30 +23,31 @@ import torch.utils.data as data
 import torch.optim as optim
 import warnings
 
+import constants as cnstnt
 from models import SpeechRecognitionModel, BiGRU
 from preprocessing import preprocess_data, check_folder, get_mappings
 from utils import data_processing, train, dev, Metrics, CUSTOM_DATASET, \
-    plot_and_save, log_message, find_best_lr, BucketsSampler, error, \
-    log_model_information, save_chckpnt, log_labels, log_k_words_instances
+    plot_and_save, log_message, find_best_lr, error, \
+    log_model_information, save_chckpnt, log_labels, log_k_words_instances, \
+    update_cnn, update_classifier, update_bigru
 
 #Comment this from time to time and check warnings are the same
 warnings.filterwarnings("ignore")
-
+THIS NEEDS TO BE UPDATED, COMPARE IT WITH MAIN 1ST STAGE
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
-FIND_LR = True #find learning rate
-TRAIN = False #train and test!
-transf_learn_all_layers = False
+FIND_LR = False #find learning rate
+TRAIN = True #train and test!
 
 #Root location of logs, plots and checkpoints
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 #Root location of spectrograms and dictionaries
 data_root = str(Path.home()) + '/Desktop/ctc_data'
 
-prev_chckpt_dir = 'SC35K_200E_WL' #Previous checkpoint folder name
+prev_chckpt_dir = 'TS_50E' #Previous checkpoint folder name
 prev_chckpt_stg = 'stg1' #Previous checkpoint stage name
-new_chckpt_stg = 'stgdummy' #Stage name for new checkpoint
-prev_chckpt_name = 'checkpoint_onRun01onEpoch093.tar'
+new_chckpt_stg = 'stg_dummy2' #Stage name for new checkpoint
+prev_chckpt_name = 'checkpoint_onRun01onEpoch047.tar'
 new_chckpt_name = 'checkpoint.tar'
 
 #Paths to logs
@@ -73,13 +75,13 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': False,
+    'use_dataset': 1,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 1000 #Set equal to None if you want to use all audios
+    'num': 200 #Set equal to None if you want to use all audios
 }
 
 TS_kwords = {
@@ -95,7 +97,7 @@ TS_kwords = {
 
 TS_spang = {
     'dataset_ID': 'TS_spang',
-    'use_dataset': 1,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ts_spang_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS_spang/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_spang_train.csv',
@@ -107,7 +109,7 @@ TS_spang = {
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
-    'use_dataset': False,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
@@ -151,7 +153,7 @@ SC_data = {
 #AOLME's variables and paths
 AO_engl = {
     'dataset_ID': 'AO_en',
-    'use_dataset': True,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ao_en_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/AO_EN/transcript.txt',
     'train_csv': gt_csvs_folder + '/ao_en_train.csv',
@@ -176,8 +178,7 @@ the chosen datasets. For example, if you chose to use KA, the run will only
 have 38 classes (number of unique phonemes in KA). But if you want to train
 also in english phonemes, you'll have to specify the path or paths to english
 dictionary(ies).'''
-other_dicts = [data_root + '/dict/ao_en_dict.pickle',
-               data_root + '/dict/ts_spang_dict.pickle']
+other_dicts = []
 
 #Specify which datasets you want to use for training
 datasets = [TS_data, KA_data, TI_train, TI_test, SC_data, AO_engl, AO_span,
@@ -193,28 +194,27 @@ max_lr = 1.0
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 8, 'p': 0.999}
+early_stop = {'n': 8, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM Will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
-bucket_boundaries = sorted([800]) #in miliseconds
-drop_last = True
 
-#New config. for dropout? batch_size? epochs? learning_rate?
-new_hparams = {
-    'gru_dim':      {'change': False, 'new_val': 64},
-    'gru_hid_dim':  {'change': False, 'new_val': 64},
-    'gru_layers':   {'change': False, 'new_val': 64},
-    'cnn1_filters': {'change': False, 'new_val': 64},
-    'cnn1_kernel':  {'change': False, 'new_val': 64},
-    #'cnn1_stride':  {'change': False, 'new_val': 64}, leave it the same
-    #'n_class':      {'change': False, 'new_val': 64}, automatically sets up
-    'n_mels':       {'change': False, 'new_val': 64},
-    'dropout':      {'change': False, 'new_val': 64}, #last layer dropout
-    'learning_rate':{'change': False, 'new_val': 64},
-    'batch_size':   {'change': False, 'new_val': 64},
-    'epochs':       {'change': False, 'new_val': 64}
-}
+#Indicate which elements to freeze and which ones not to. If set to False, I
+#will freeze. If set to True, I won't. Last layer will be edited either way.
+CNN = {'change': False, 'cnn1_filters': 80, 'cnn1_kernel': 15,
+       'cnn1_stride': cnstnt.CNN_STRIDE}
+GRU = {'change': False, 'gru_dim': 16, 'gru_hid_dim': 16, 'gru_layers': 2,
+       'gru_dropout': 0.1}
+#As of right now, number of mels must remain the same; n_mels = 128
 
+#Other hyper parameters
+HP = {'n_class': {'change': True, 'value': -1}, #dynamically edited later
+      'dropout': {'change': True, 'value': 0.1}, #classifier's dropout
+      'lr':      {'change': True, 'value': 0.005}, #learning rate
+      'bs':      {'change': False, 'value': 2}, #batch size
+      'epochs':  {'change': True, 'value': 10}}
+
+gamma = 0.95 #for learning scheduler
+#TODO update numner of classes later!
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
 #Make sure that assumed-path-to-desktop exists
@@ -241,7 +241,8 @@ ipa2char, char2ipa, int2char, char2int, blank_label = get_mappings(datasets,
 preprocess_data(gt_csvs_folder, k_words, datasets, train_csv, dev_csv,
                 k_words_path, misc_log)
     
-if TRAIN or FIND_LR: #--------------------------------------------------------    
+if TRAIN or FIND_LR: #--------------------------------------------------------   
+    HP['n_class']['value'] = blank_label+1 #Initialize new number of classes (labels) 
     msg = "Training and Validation results are saved here:\n\n"
     log_message(msg, train_log, 'w', False)
     
@@ -260,7 +261,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     torch.manual_seed(7)
     random.seed(7)
     
-    #Load checkpoint and hyper parameters
+    #Load checkpoint and its hyper parameters
     checkpnt = torch.load(prev_chckpt_path)
     hparams = checkpnt['hparams']
         
@@ -268,63 +269,35 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     model = SpeechRecognitionModel(hparams)
     model.load_state_dict(checkpnt['model_state_dict'])
     
-    if not transf_learn_all_layers:
-        #If using net as "fixed feature extractor" freeze all except last layer
-        for param in model.parameters():
-            param.requires_grad = False
-    print(model)
-    model.fully_connected.out_features = 32
-    model.birnn_layers = BiGRU(32, 32,
-            4, hparams['dropout'], batch_first=True)
+    #Update epoch, dropout, lr, bs and n_class in {hparams}
+    for key, item in HP.items():
+        if item['change']:
+            hparams[key] = item['value']
     
-    model.classifier = nn.Sequential(
-            nn.Linear(128, 32),  # birnn returns gru_hid_dim*2 (2 because bidirectional=True in nn.GRU)
-            nn.GELU(),
-            nn.Dropout(hparams['dropout']),
-            nn.Linear(32, hparams['n_class'])
-        )
-    print(model)  
-    #Change specified attributes (hparams) in model; update hparams
-    # model, hparams = update_model(model, new_hparams, hparams,
-    #     transf_learn_all_layers)
-    
-    #Re-initialize last layer
-    in_ftrs = model.classifier[3].in_features
-    out_ftrs = blank_label+1
-    model.classifier[3] = nn.Linear(in_ftrs, out_ftrs)
+    #Freeze or update layers for each case; set up optimizer
+    oparams = [] #To keep track of those parameters that should be optimized
+    model, hparams, oparams = update_cnn(CNN, GRU, model, hparams, oparams)
+    model, hparams, oparams = update_bigru(CNN, GRU, model, hparams, oparams)
+    model, oparams = update_classifier(GRU, model, hparams, oparams)
     model = model.to(device)
+    optimizer = optim.AdamW(oparams, hparams['lr'])
+        
+    #Initialize loss function (criterion) and learning rate scheduler
     criterion = nn.CTCLoss(blank=blank_label).to(device)
-    '''
-    #In order to log correct information, update value for number of classes
-    hparams['n_class'] = out_ftrs
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma = gamma)
     
-    if not transf_learn_all_layers:
-        #net as "fixed feature extractor" (only optimize the final layer)
-        optimizer = optim.AdamW(model.classifier[3].parameters(), hparams['learning_rate'])
-    else:
-        #"Finetuning the net" (optimize all parameters)
-        optimizer = optim.AdamW(model.parameters(), hparams['learning_rate'])
-    
-    #Set up Train DataLoader
-    sampler = BucketsSampler(train_csv, bucket_boundaries, hparams['batch_size'], drop_last)
-    kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
-    #train_loader batch size is set to 1, since we are using BucketsSampler
-    train_loader = data.DataLoader(
-        dataset=train_dataset, batch_size=1, batch_sampler=sampler,
-        collate_fn=lambda x: data_processing(x, char2int, hparams['n_mels'], FM, TM, 'train'),
-        **kwargs)
-    
-    #Set up Validation DataLoader
-    sampler = BucketsSampler(dev_csv, bucket_boundaries, hparams['batch_size'], drop_last)
-    #dev_loader batch size is set to 1, since we are using BucketsSampler
-    dev_loader = data.DataLoader(dataset=dev_dataset, batch_size=1, batch_sampler=sampler,
-        collate_fn=lambda x: data_processing(x, char2int, hparams['n_mels']),
-        **kwargs)
-    
-    #Set up Learning Rate scheduler
-    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=hparams['learning_rate'], 
-        steps_per_epoch=train_loader.batch_sampler.num_of_batches,
-        epochs=hparams['epochs'], anneal_strategy='linear')
+    #Set up Train DataLoader and Validation DataLoader    
+    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+    train_loader = data.DataLoader(dataset=train_dataset,
+                                    batch_size=hparams['bs'],
+                                    shuffle=True,
+                                    collate_fn=lambda x: data_processing(x, char2int, FM, TM, 'train'),
+                                    **kwargs)
+    dev_loader = data.DataLoader(dataset=dev_dataset,
+                                batch_size=hparams['bs'],
+                                shuffle=True,
+                                collate_fn=lambda x: data_processing(x, char2int),
+                                **kwargs)
         
     if FIND_LR:
         find_best_lr(model, criterion, optimizer, train_loader, start_lr,
@@ -347,7 +320,7 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
                 train_log, blank_label, int2char, char2ipa, metrics)
             
             #If current PER is lower than best global PER, copy the model
-            epoch_per = metrics.pers[-1]
+            epoch_per = metrics.dev_pers[-1]
             if epoch_per < best_per:
                 best_per = epoch_per
                 best_model_wts = copy.deepcopy(model.state_dict())
@@ -360,15 +333,15 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
                 break
         
         msg = MSG + f"Best PER: {metrics.get_best_cer():.4f} on Epoch "
-        msg += f"{metrics.pers.index(metrics.get_best_cer()) + 1}\n"
+        msg += f"{metrics.dev_pers.index(metrics.get_best_cer()) + 1}\n"
         log_message(msg + '\n\n', train_log, 'a', True)
         
         #Log model summary, # of parameters, hyper parameters and more
         num_params = log_model_information(misc_log, model, hparams)
             
         #Plot losses, PERs, learning rates and save as figures
-        plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.pers,
-            metrics.lrs, 1, logs_folder)
+        plot_and_save(metrics.dev_losses, metrics.train_losses, metrics.dev_pers,
+                metrics.train_pers, metrics.lrs, 1, logs_folder)
             
         #Save weights of best model, along with its optimizer state and hparams
         new_chckpt_path = save_chckpnt(best_model_wts, hparams, new_chckpt_path,
@@ -376,18 +349,21 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
         
         #Log summary of values, paths and attributes used
         msg += f"Checkpoint has been saved here: {new_chckpt_path}\n"
+        msg += f"Was the CNN changed? {CNN['change']}\n"
+        msg += f"Was the GRU changed? {GRU['change']}\n"
         msg += f"Number of parameters in model: {num_params}\n"
-        msg += f"Using all layers in Transf. Learn.? {transf_learn_all_layers}"
-        msg += "\nAre we using masking during training? 'Yes'\n"
-        msg += f"In all runs, training set had {len(train_dataset)} audio files "
+        msg += "Are we using masking during training? 'Yes'\n"
+        msg += f"Training set had {len(train_dataset)} audio files "
         msg += f"equivalent to {train_dataset.duration:.2f} seconds\n"
         msg += f"In all runs, dev set had {len(dev_dataset)} audio files; equi"
         msg += f"valent to {dev_dataset.duration:.2f} seconds\n"
         msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
-        msg += f"{((1-early_stop['p'])*100):.2f}%\n"
+        msg += f"{((1-early_stop['p'])*100):.2f}%\n\tOverfit Threshold: "
+        msg += f"{early_stop['t']:.2f}\n\tNumber of epochs to wait: "
+        msg += f"{early_stop['w']}\n"
+        msg += f"Gamma value for learning rate is: {gamma}\n"
         msg += f"Number of classes: {hparams['n_class']}\n"
         msg += f"Time Masking Coefficient: {TM}, Frequency Masking: {FM}\n"
-        msg += f"Buckets Boundaries: {bucket_boundaries}\n"
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
         log_message(msg, train_log, 'a', True)
         
@@ -405,11 +381,9 @@ if TRAIN or FIND_LR: #--------------------------------------------------------
     #See: https://stackify.com/python-garbage-collection/
     # model.apply(weights_init)
     del model, criterion, scheduler, optimizer
-    '''
     gc.collect()
     torch.cuda.empty_cache()
     
-
 '''References:
 CTC in Pytorch: https://colab.research.google.com/drive/1IPpwx4rX32rqHKpLz7dc8sOKspUa-YKO#scrollTo=RVJs4Bk8FjjO
 Transfer Learning: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
