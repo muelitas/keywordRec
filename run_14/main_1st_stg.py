@@ -213,9 +213,8 @@ HP = {  'cnn1_filters': [16],
         'G': [0.977], #Gamma, for learning scheduler; set to 1 for steady LR
         'bs': [2], #batch size
         'epochs': [80]}
-#'dev' means no spec augment during training
-#'train' means to train with spec augment
-specAug = 'dev' 
+
+specAug = False #Whether to use spec augment during training
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -353,7 +352,7 @@ if TRAIN: #--------------------------------------------------------
         msg += f"Checkpoint has been saved here: {chckpnt_path}\n"
         msg += f"Scheduler used in this run(s) was: '{LR}'\n"
         msg += f"Number of parameters in model: {num_params}\n"
-        msg += "Are we using masking during training? 'Yes'\n"
+        msg += f"Are we using masking during training? {specAug}\n"
         msg += f"In all runs, training set had {len(train_dataset)} audio files "
         msg += f"equivalent to {train_dataset.duration:.2f} seconds\n"
         msg += f"In all runs, dev set had {len(dev_dataset)} audio files; equi"
