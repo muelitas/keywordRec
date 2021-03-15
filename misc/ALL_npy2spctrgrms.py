@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from os.path import join as pj #pj stands for path.join
+from pathlib import Path
 import shutil
 import sys
 import torch
@@ -167,7 +168,7 @@ def TS_npy_to_spctrgrms(tts_gtts, SR, mels):
         torch.save(spctrgrm, spctrgrm_path)
         F.write(spctrgrm_path + '\t' + text + '\t' + str(audio_dur) + '\n')
         
-        if idx%150 == 0:
+        if idx%1000 == 0:
             print(f"\t{idx+1} spectrograms have been processed and saved")
         
         #Print samples for visual aid (to ensure audios match rows in np_array)
@@ -347,49 +348,50 @@ def SC_npy_to_spctrgrms(speechCmds, SR, mels):
 
     print(f"Finished processing all {len(src_folders)} folders")
 
+data_root = str(Path.home()) + '/Desktop/ctc_data'
 root = '/media/mario/audios'
 SR = 16000 #Sample Rate
 mels = 128
 
 #KA stands for Kaggle
 KA = {'old_transcr': root + '/spanish/kaggle_custom/transcript.txt',
-      'new_transcr': root + '/spctrgrms/pyroom/KA/transcript.txt',
-      'dst_dir': root + '/spctrgrms/pyroom/KA',
-      'npy_file': root + '/PyRoom/DA_files/kaggle_DA.npy'}
+      'new_transcr': data_root + '/spctrgrms/pyroom/KAx4_3/transcript.txt',
+      'dst_dir': data_root + '/spctrgrms/pyroom/KAx4_3',
+      'npy_file': root + '/PyRoom/KA_times4/KA_DA_3.npy'}
 
 #TS stands for TTS and gTTS
 TS = {'old_transcr': root + '/spanish_custom/transcript.txt',
-      'new_transcr': root + '/spctrgrms/pyroom/TS/transcript.txt',
-      'dst_dir': root + '/spctrgrms/pyroom/TS',
-      'npy_file': root + '/PyRoom/DA_files/TTS_and_gTTS_DA.npy'}
+      'new_transcr': '/media/mario/audios/TS_x4_spctrgrms/TSx4_3/transcript.txt',
+      'dst_dir': '/media/mario/audios/TS_x4_spctrgrms/TSx4_3',
+      'npy_file': '/media/mario/audios/PyRoom/TS_times4/TS_DA_3.npy'}
 
 #TI stands for TIMIT
 TI_train = {'old_transcr': root + '/TI_all_train/transcript.txt',
-      'new_transcr': root + '/spctrgrms/pyroom/TI_all_train/transcript.txt',
-      'dst_dir': root + '/spctrgrms/pyroom/TI_all_train',
+      'new_transcr': data_root + '/spctrgrms/pyroom/TI_all_train/transcript.txt',
+      'dst_dir': data_root + '/spctrgrms/pyroom/TI_all_train',
       'npy_file': root + '/PyRoom/DA_files/TI_all_train_DA.npy'}
 
 TI_test = {'old_transcr': root + '/TI_all_test/transcript.txt',
-      'new_transcr': root + '/spctrgrms/pyroom/TI_all_test/transcript.txt',
-      'dst_dir': root + '/spctrgrms/pyroom/TI_all_test',
+      'new_transcr': data_root + '/spctrgrms/pyroom/TI_all_test/transcript.txt',
+      'dst_dir': data_root + '/spctrgrms/pyroom/TI_all_test',
       'npy_file': root + '/PyRoom/DA_files/TI_all_test_DA.npy'}
 
 SC = {'src_dir': root + '/speech_commands_v2',
-      'dst_dir': root + '/spctrgrms/pyroom/SC',
+      'dst_dir': data_root + '/spctrgrms/pyroom/SC',
       'npy_dir': root + '/PyRoom/DA_files/SC_DA'}
 
 #Check if destination directories exist, otherwise, ask if okay to erase
 # check_folder(KA['dst_dir'])
-# check_folder(TS['dst_dir'])
+check_folder(TS['dst_dir'])
 # check_folder(LS['dst_dir'])
-check_folder(SC['dst_dir'])
+# check_folder(SC['dst_dir'])
 # check_folder(TI_train['dst_dir'])
 # check_folder(TI_test['dst_dir'])
 
 #Generate and save spectrograms
 # KA_npy_to_spctrgrms(KA, SR, mels)
-# TS_npy_to_spctrgrms(TS, SR, mels)
+TS_npy_to_spctrgrms(TS, SR, mels)
 # LS_npy_to_audios(LS, SR, some_zeros)
-SC_npy_to_spctrgrms(SC, SR, mels)
+# SC_npy_to_spctrgrms(SC, SR, mels)
 # TI_npy_to_spctrgrms(TI_train, SR, mels)
 # TI_npy_to_spctrgrms(TI_test, SR, mels)

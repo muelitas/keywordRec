@@ -19,11 +19,8 @@ def plot_spctrgrm(title, spctrgrm):
     plt.show()
 
 spctrgrms_paths = [
-    '/home/mario/Desktop/ctc_data/spctrgrms/pyroom/KAx4/batalla_arapiles_4552_0.pt',
-    '/home/mario/Desktop/ctc_data/spctrgrms/pyroom/KAx4/batalla_arapiles_4552_1.pt',
-    '/home/mario/Desktop/ctc_data/spctrgrms/pyroom/KAx4/batalla_arapiles_4552_2.pt',
-    '/home/mario/Desktop/ctc_data/spctrgrms/pyroom/KAx4/batalla_arapiles_4552_3.pt',
-    '/home/mario/Desktop/ctc_data/spctrgrms/clean/KA/batalla_arapiles_4552.pt'
+    '/home/mario/Desktop/AO_SP_smallerHopLength/Apr12-D-Chaitu_q2_02-05_Spanish_001.pt',
+    '/home/mario/Desktop/ctc_data/spctrgrms/clean/AO_SP/Apr12-D-Chaitu_q2_02-05_Spanish_001.pt'
 ]
 
 for item in spctrgrms_paths:

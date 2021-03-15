@@ -14,8 +14,8 @@ import shutil
 import sys
 
 data_root = str(Path.home()) + '/Desktop/ctc_data' 
-src_dir = data_root + '/spctrgrms/clean/TS'
-dst_dir = data_root + '/spctrgrms/clean/TS_kwords'
+src_dir = data_root + '/spctrgrms/pyroom/TS'
+dst_dir = data_root + '/spctrgrms/pyroom/TS_kwords'
 k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
           'uno', 'dos', 'tres', 'cinco', 'número', 'números']
 

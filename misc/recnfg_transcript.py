@@ -10,8 +10,8 @@
 #TODO implement boolean to save me from warning below
 #WARNING: this code will overwrite your current transcript. You may want to
 #first print out some samples and comment the second loop.
-transcr_path = '/home/mario/Desktop/ctc_data/spctrgrms/clean/TI_all_test/transcript.txt'
-new_root = '/home/mario/Desktop/ctc_data/spctrgrms/clean/TI_all_test' 
+transcr_path = '/media/mario/audios/KA_x4_spctrgrms/KAx4_3/transcript.txt'
+new_root = '/media/mario/audios/KA_x4_spctrgrms/KAx4_3' 
 
 #Get lines from transcript and create 'new lines'
 new_lines = []
