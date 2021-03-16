@@ -35,8 +35,10 @@ warnings.filterwarnings("ignore")
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
 TRAIN = True #train and validate!
 
+#Root location of logs, plots and checkpoints
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
-data_root = str(Path.home()) + '/Desktop/ctc_data' #root for dicts and transcripts
+#Root location of spectrograms and dictionaries
+data_root = str(Path.home()) + '/Desktop/ctc_data'
 #Nomenclature: K=1000; E=epochs
 logs_folder = runs_root + '/KAx4LRs/stg1'
 misc_log = logs_folder + '/miscellaneous.txt'
@@ -107,7 +109,7 @@ KA_data = {
     'dev_csv': gt_csvs_folder + '/ka_dev.csv',
     'splits': [0.9, 0.1]
 }
-#
+#Kaggle's dataset (ran through pyroom, 4 diff. locations)
 KAx4 = {
     'dataset_ID': 'KAx4',
     'use_dataset': 1,
@@ -194,6 +196,7 @@ manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
 early_stop = {'n': 4, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
+specAug = False #Whether to use spec augment during training
 
 #Hyper Parameters
 HP = {  'cnn1_filters': [12],
@@ -210,8 +213,6 @@ HP = {  'cnn1_filters': [12],
         'T': [-1], #Set to -1 if you want a steady LR throughout training
         'bs': [2], #batch size
         'epochs': [10]}
-
-specAug = False #Whether to use spec augment during training
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
