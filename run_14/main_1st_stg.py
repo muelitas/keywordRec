@@ -38,7 +38,7 @@ TRAIN = True #train and validate!
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = str(Path.home()) + '/Desktop/ctc_data' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = runs_root + '/dummy/stg1'
+logs_folder = runs_root + '/KAx4LRs/stg1'
 misc_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -110,7 +110,7 @@ KA_data = {
 #
 KAx4 = {
     'dataset_ID': 'KAx4',
-    'use_dataset': 0,
+    'use_dataset': 1,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/pyroom/KAx4/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_x4_train.csv',
@@ -196,20 +196,20 @@ early_stop = {'n': 4, 'p': 0.999, 't': 1.0, 'w': 8}
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 
 #Hyper Parameters
-HP = {  'cnn1_filters': [16],
+HP = {  'cnn1_filters': [12],
         'cnn1_kernel': [3],
         'cnn1_stride': [cnstnt.CNN_STRIDE],
         'gru_dim': [64],
         'gru_hid_dim': [64],
-        'gru_layers': [8],
+        'gru_layers': [4],
         'gru_dropout': [0.1],
         'n_class': [-1], #dynamically initialized later
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'e_0': [2e-3], #initial learning rate
+        'e_0': [3e-2, 3e-3, 3e-4, 3e-5], #initial learning rate
         'T': [-1], #Set to -1 if you want a steady LR throughout training
         'bs': [2], #batch size
-        'epochs': [80]}
+        'epochs': [10]}
 
 specAug = False #Whether to use spec augment during training
 
@@ -330,39 +330,39 @@ if TRAIN: #--------------------------------------------------------
         gc.collect()
         torch.cuda.empty_cache()
     
-        #Save weights of best model, along with its optimizer state and hparams
-        chckpnt_path = save_chckpnt(best_model_wts, best_hparams, chckpnt_path,
-            run_num, epoch_num)
-        
-        #Record "bestest" metrics, run-time, and others
-        msg = f"\nBest PER of all was {min(best_pers):.4f} on run "
-        msg += f"{best_pers.index(min(best_pers)) + 1}\n"
-        msg += f"Checkpoint has been saved here: {chckpnt_path}\n"
-        msg += f"Number of parameters in model: {num_params}\n"
-        msg += f"In all runs, training set had {len(train_dataset)} audio files "
-        msg += f"equivalent to {train_dataset.duration:.2f} seconds\n"
-        msg += f"In all runs, dev set had {len(dev_dataset)} audio files; equi"
-        msg += f"valent to {dev_dataset.duration:.2f} seconds\n"
-        msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
-        msg += f"{((1-early_stop['p'])*100):.2f}%\n\tOverfit Threshold: "
-        msg += f"{early_stop['t']:.2f}\n\tNumber of epochs to wait: "
-        msg += f"{early_stop['w']}\n"
-        msg += f"Number of classes: {HP['n_class']}\n"
-        msg += f"Are we using masking during training? {specAug}\n"
-        if specAug:
-            msg += f"Time Masking Coeff.: {TM}, Frequency Masking: {FM}\n"
-        msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
-        log_message(msg, train_log, 'a', True)
-        
-        #Log labels' conversions (from IPA to char and char to int)
-        log_labels(ipa2char, char2int, misc_log)
-        #Log & print the number of times each k_word appears in train and dev
-        log_k_words_instances(k_words_path, misc_log)
+    #Save weights of best model, along with its optimizer state and hparams
+    chckpnt_path = save_chckpnt(best_model_wts, best_hparams, chckpnt_path,
+        run_num, epoch_num)
     
-        print("\nModels summaries, hyper parameters and other miscellaneous info "
-              f"can be found here: {misc_log}")
-        print(f"A log for all trainings can be found here: {train_log}")
-        print(f"Losses' Plots for each run can be found here: {logs_folder}")
+    #Record "bestest" metrics, run-time, and others
+    msg = f"\nBest PER of all was {min(best_pers):.4f} on run "
+    msg += f"{best_pers.index(min(best_pers)) + 1}\n"
+    msg += f"Checkpoint has been saved here: {chckpnt_path}\n"
+    msg += f"Number of parameters in model: {num_params}\n"
+    msg += f"In all runs, training set had {len(train_dataset)} audio files "
+    msg += f"equivalent to {train_dataset.duration:.2f} seconds\n"
+    msg += f"In all runs, dev set had {len(dev_dataset)} audio files; equi"
+    msg += f"valent to {dev_dataset.duration:.2f} seconds\n"
+    msg += f"Early Stop Values:\n\tn: {early_stop['n']}\n\tPercentage: "
+    msg += f"{((1-early_stop['p'])*100):.2f}%\n\tOverfit Threshold: "
+    msg += f"{early_stop['t']:.2f}\n\tNumber of epochs to wait: "
+    msg += f"{early_stop['w']}\n"
+    msg += f"Number of classes: {HP['n_class']}\n"
+    msg += f"Are we using masking during training? {specAug}\n"
+    if specAug:
+        msg += f"Time Masking Coeff.: {TM}, Frequency Masking: {FM}\n"
+    msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
+    log_message(msg, train_log, 'a', True)
+    
+    #Log labels' conversions (from IPA to char and char to int)
+    log_labels(ipa2char, char2int, misc_log)
+    #Log & print the number of times each k_word appears in train and dev
+    log_k_words_instances(k_words_path, misc_log)
+
+    print("\nModels summaries, hyper parameters and other miscellaneous info "
+          f"can be found here: {misc_log}")
+    print(f"A log for all trainings can be found here: {train_log}")
+    print(f"Losses' Plots for each run can be found here: {logs_folder}")
 
 '''References:
 CTC in Pytorch: https://colab.research.google.com/drive/1IPpwx4rX32rqHKpLz7dc8sOKspUa-YKO#scrollTo=RVJs4Bk8FjjO
