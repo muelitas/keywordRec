@@ -475,13 +475,13 @@ def cer(reference, hypothesis, ignore_case=False, remove_space=False):
     return cer
 
 
-def data_processing(data, char2int, FM=27, TM=0.125, CASE='dev'):
+def data_processing(data, char2int, FM=27, TM=0.125, CASE=False):
     spectrograms, labels, inp_lengths, label_lengths, filenames = [],[],[],[],[]
     
     for (spctrgrm_path, utterance) in data:   
         spec = torch.load(spctrgrm_path)
         #Apply audio transforms (frequency and time masking) to train samples
-        if CASE == 'train':
+        if CASE:
             spec = tforms.FrequencyMasking(FM)(spec)
             spec = tforms.TimeMasking(int(TM * spec.shape[2]))(spec)
                                 
@@ -514,7 +514,7 @@ def GreedyDecoder(output, labels, label_lengths, blank_label, int2char, collapse
 	return decodes, targets
 
 
-def train(model, device, train_loader, criterion, optimizer, LR, scheduler,
+def train(model, device, train_loader, criterion, optimizer, scheduler,
           epoch, log_file, blank_label, int2char, char2ipa, losses):
     model.train()
     msg = f"\tEpoch: {epoch} | "
@@ -541,10 +541,8 @@ def train(model, device, train_loader, criterion, optimizer, LR, scheduler,
         for j in range(len(decoded_preds)):
                 train_per.append(cer(decoded_targets[j], decoded_preds[j]))
        
-        lrs.append(scheduler.get_last_lr()[0])        
+        lrs.append(optimizer.param_groups[0]['lr'])
         optimizer.step()
-        if LR == '1': #Use for oneCycleLR scheduler
-            scheduler.step()
     
     avg_per = sum(train_per)/len(train_per)        
     train_loss = sum(train_losses) / len(train_losses) #epoch's average loss
@@ -553,8 +551,9 @@ def train(model, device, train_loader, criterion, optimizer, LR, scheduler,
     
     msg += f"Train Avg Loss: {train_loss:.4f}\n"
     log_message(msg, log_file, 'a', True)
-    if LR == 'E': #Use for exponentialLR scheduler
-        scheduler.step()
+    #update learning rate
+    new_lr = scheduler.step() 
+    optimizer.param_groups[0]['lr'] = new_lr
             
 def dev(model, device, dev_loader, criterion, epoch, log_file, blank_label,
         int2char, char2ipa, metrics):
@@ -787,3 +786,28 @@ def update_classifier(GRU, model, hparams, oparams):
     oparams += model.classifier[3].parameters()
     print("\tDone...Last Layer modified")
     return model, oparams
+
+class LR_SCHED():
+    """Learning Rate Scheduler; implementation from Deep Learning Book,
+    Chapter 8"""
+    def __init__(self, params):
+        #Initialize starting learning rate, T coeff and ending learning rate
+        self.e_0 = params['e_0'] #initial learning rate
+        self.e_T = params['e_0'] * 0.01 #max/final learning rate
+        self.T = params['T']
+        self.k = 1 #counter
+
+    def step(self):
+        """Determine and return new learning rate"""
+        if self.T == -1:
+            #In case I want to implement a 'steady' learning rate
+            e_k = self.e_0
+        else:
+            if self.k <= self.T: 
+                alpha = self.k / self.T
+                e_k = (1 - alpha) * self.e_0 + alpha * self.e_T
+                self.k += 1 #Update counter
+            else:
+                e_k = self.e_T
+           
+        return e_k

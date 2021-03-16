@@ -8,7 +8,6 @@
 ***************************************************************************''' 
 import copy 
 import gc
-import math
 import os
 from pathlib import Path
 import random
@@ -18,14 +17,13 @@ import time
 import torch
 import torch.nn as nn
 import torch.utils.data as data
-from torch.optim import lr_scheduler as lr_sched
 import warnings
 
 import constants as cnstnt
 from models import SpeechRecognitionModel
 from preprocessing import preprocess_data, check_folder, get_mappings
 from utils import data_processing, train, dev, Metrics, log_model_information, \
-    plot_and_save, log_message, CUSTOM_DATASET, \
+    plot_and_save, log_message, CUSTOM_DATASET, LR_SCHED, \
     log_labels, log_k_words_instances, error, save_chckpnt
 
 #TODO implement readablechars2IPA in custom dataset (or data_processing?)
@@ -35,13 +33,12 @@ warnings.filterwarnings("ignore")
 
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
-TRAIN = 1 #train and validate!
-LR = 'E' #'E' for exponential or for steady, '1' for one cycle
+TRAIN = True #train and validate!
 
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 data_root = str(Path.home()) + '/Desktop/ctc_data' #root for dicts and transcripts
 #Nomenclature: K=1000; E=epochs
-logs_folder = runs_root + '/xKAx4_80E/stg1'
+logs_folder = runs_root + '/dummy/stg1'
 misc_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -75,7 +72,7 @@ TSx4 = {
     'train_csv': gt_csvs_folder + '/ts_x4_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_x4_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 100 #Set equal to None if you want to use all audios
+    'num': 6000 #Set equal to None if you want to use all audios
 }
 
 TS_kwords = {
@@ -151,7 +148,7 @@ SC_data = {
     'train_csv': gt_csvs_folder + '/sc_train.csv',
     'dev_csv': gt_csvs_folder + '/sc_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 200 #Set equal to None if you want to use all audios
+    'num': 4000 #Set equal to None if you want to use all audios
 }
 
 #AOLME's variables and paths
@@ -206,11 +203,11 @@ HP = {  'cnn1_filters': [16],
         'gru_hid_dim': [64],
         'gru_layers': [8],
         'gru_dropout': [0.1],
-        'n_class': [-1], #automatically sets up on Step 2
+        'n_class': [-1], #dynamically initialized later
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'lr': [2.8e-4], #learning rate
-        'G': [0.977], #Gamma, for learning scheduler; set to 1 for steady LR
+        'e_0': [2e-3], #initial learning rate
+        'T': [-1], #Set to -1 if you want a steady LR throughout training
         'bs': [2], #batch size
         'epochs': [80]}
 
@@ -218,10 +215,6 @@ specAug = False #Whether to use spec augment during training
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
-#If learning rate scheduler is not 'exponential', ignore gamma parameter
-if LR != 'E':
-    HP['G'][0] = -1
-
 #Make sure that assumed-path-to-desktop exists
 if not os.path.exists(runs_root):
     print(f"{error()} I assumed your desktop's path was {runs_root}"
@@ -285,20 +278,15 @@ if TRAIN: #--------------------------------------------------------
                                     **kwargs)
         
         model = SpeechRecognitionModel(hparams).to(device)
-        optimizer = torch.optim.AdamW(model.parameters(), hparams['lr'])
+        optimizer = torch.optim.AdamW(model.parameters(), hparams['e_0'])
         criterion = nn.CTCLoss(blank=blank_label).to(device)
-        if LR == 'E':
-            scheduler = lr_sched.ExponentialLR(optimizer, gamma = hparams['G'])
-        else:
-            scheduler = lr_sched.OneCycleLR(optimizer, max_lr=hparams['lr'], 
-                steps_per_epoch=math.ceil(len(train_dataset)/hparams['bs']),
-                epochs=hparams['epochs'], anneal_strategy='linear')
         
+        scheduler = LR_SCHED(hparams)
         metrics = Metrics()
         MSG = '\t'
         
         for epoch in range(1, hparams['epochs'] + 1):
-            train(model, device, train_loader, criterion, optimizer, LR,
+            train(model, device, train_loader, criterion, optimizer,
                 scheduler, epoch, train_log, blank_label, int2char, char2ipa, 
                 metrics)
             
@@ -350,9 +338,7 @@ if TRAIN: #--------------------------------------------------------
         msg = f"\nBest PER of all was {min(best_pers):.4f} on run "
         msg += f"{best_pers.index(min(best_pers)) + 1}\n"
         msg += f"Checkpoint has been saved here: {chckpnt_path}\n"
-        msg += f"Scheduler used in this run(s) was: '{LR}'\n"
         msg += f"Number of parameters in model: {num_params}\n"
-        msg += f"Are we using masking during training? {specAug}\n"
         msg += f"In all runs, training set had {len(train_dataset)} audio files "
         msg += f"equivalent to {train_dataset.duration:.2f} seconds\n"
         msg += f"In all runs, dev set had {len(dev_dataset)} audio files; equi"
@@ -362,7 +348,9 @@ if TRAIN: #--------------------------------------------------------
         msg += f"{early_stop['t']:.2f}\n\tNumber of epochs to wait: "
         msg += f"{early_stop['w']}\n"
         msg += f"Number of classes: {HP['n_class']}\n"
-        msg += f"Time Masking Coefficient: {TM}, Frequency Masking: {FM}\n"
+        msg += f"Are we using masking during training? {specAug}\n"
+        if specAug:
+            msg += f"Time Masking Coeff.: {TM}, Frequency Masking: {FM}\n"
         msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
         log_message(msg, train_log, 'a', True)
         
@@ -381,7 +369,7 @@ CTC in Pytorch: https://colab.research.google.com/drive/1IPpwx4rX32rqHKpLz7dc8sO
 Transfer Learning: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
 Transfer Learning: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 Transfer Learning: https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-a-general-checkpoint-for-inference-and-or-resuming-training
-find_lr: Programming PyTorch for Deep Learning'''
+Learning Rate Technique from https://www.deeplearningbook.org/contents/optimization.html'''
 
 '''NOTES:
 -Having two consecutive labels together may cause CTC to give an inf loss
