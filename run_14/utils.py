@@ -37,7 +37,7 @@ def log_model_information(log_file, model, hparams):
     '''Log model summary, # of parameters, hyper parameters and more'''
     original_stdout = sys.stdout # Save a reference to the original std output
     with open(log_file, 'a') as log:
-        num_params = sum([param.nelement() for param in model.parameters()])
+        num_params = sum([param.nelement() for param in model.parameters() if param.requires_grad])
         sys.stdout = log # Change standard output to the created file
         #Number of parameters
         print('Total Number of Parameters in the Model is: ',end='')
