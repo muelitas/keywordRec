@@ -40,7 +40,7 @@ runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 #Root location of spectrograms and dictionaries
 data_root = str(Path.home()) + '/Desktop/ctc_data'
 #Nomenclature: K=1000; E=epochs
-logs_folder = runs_root + '/KAx4LRs/stg1'
+logs_folder = runs_root + '/testing/stg1'
 misc_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -57,13 +57,13 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': 0,
+    'use_dataset': 1,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 200 #Set equal to None if you want to use all audios
+    'num': 3000 #Set equal to None if you want to use all audios
 }
 
 TSx4 = {
@@ -112,7 +112,7 @@ KA_data = {
 #Kaggle's dataset (ran through pyroom, 4 diff. locations)
 KAx4 = {
     'dataset_ID': 'KAx4',
-    'use_dataset': 1,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/pyroom/KAx4/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_x4_train.csv',
@@ -144,13 +144,13 @@ TI_test = {
 #Speech Commands' variables and paths
 SC_data = {
     'dataset_ID': 'SC',
-    'use_dataset': False,
+    'use_dataset': 0,
     'dict': data_root + '/dict/sc_dict.pickle',
     'src_dir': data_root + '/spctrgrms/clean/SC',
     'train_csv': gt_csvs_folder + '/sc_train.csv',
     'dev_csv': gt_csvs_folder + '/sc_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 4000 #Set equal to None if you want to use all audios
+    'num': 3500 #Set equal to None if you want to use all audios
 }
 
 #AOLME's variables and paths
@@ -199,20 +199,20 @@ FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 specAug = False #Whether to use spec augment during training
 
 #Hyper Parameters
-HP = {  'cnn1_filters': [12],
+HP = {  'cnn1_filters': [4],
         'cnn1_kernel': [3],
         'cnn1_stride': [cnstnt.CNN_STRIDE],
-        'gru_dim': [64],
-        'gru_hid_dim': [64],
-        'gru_layers': [4],
+        'gru_dim': [32],
+        'gru_hid_dim': [32],
+        'gru_layers': [2],
         'gru_dropout': [0.1],
         'n_class': [-1], #dynamically initialized later
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'e_0': [3e-2, 3e-3, 3e-4, 3e-5], #initial learning rate
-        'T': [-1], #Set to -1 if you want a steady LR throughout training
+        'e_0': [3e-4], #initial learning rate
+        'T': [30], #Set to -1 if you want a steady LR throughout training
         'bs': [2], #batch size
-        'epochs': [10]}
+        'epochs': [20]}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -255,10 +255,10 @@ if TRAIN: #--------------------------------------------------------
     
     #To keep track of best metrics, best model and best hyper params.
     best_pers, global_best_per, best_model_wts, best_hparams = [], 2.0, {}, {}
-    optimizer_state_dict, run_num, epoch_num = {}, '', ''
-    
+    optimizer_state_dict, run_num, epoch_num = {}, '-1', '-1'
+        
     #Iterate through hyper parameters
-    start_time = time.time()
+    start_time = time.process_time()
     for idx, hparams in enumerate(list(ParameterGrid(HP))):
         torch.manual_seed(7)
         msg = f"PARAMETERS [{idx+1}/{num_runs}]\n"
@@ -294,9 +294,13 @@ if TRAIN: #--------------------------------------------------------
             dev(model, device, dev_loader, criterion, epoch,
                 train_log, blank_label, int2char, char2ipa, metrics)
             
-            #If current PER is lower than best global PER, copy the model
+            #Check if ratio loss is between 1.01 and 0.99
+            keep_it = metrics.keep_result()
+            
+            #If {keep_it} is True and current PER is lower than best global
+            #PER, copy model
             epoch_per = metrics.dev_pers[-1]
-            if epoch_per < global_best_per:
+            if epoch_per < global_best_per and keep_it:
                 global_best_per = epoch_per
                 best_model_wts = copy.deepcopy(model.state_dict())
                 # optimizer_state_dict = copy.deepcopy(optimizer.state_dict())
@@ -333,7 +337,7 @@ if TRAIN: #--------------------------------------------------------
     
     #Save weights of best model, along with its optimizer state and hparams
     chckpnt_path = save_chckpnt(best_model_wts, best_hparams, chckpnt_path,
-        run_num, epoch_num)
+        run_num, epoch_num, train_log)
     
     #Record "bestest" metrics, run-time, and others
     msg = f"\nBest PER of all was {min(best_pers):.4f} on run "
@@ -352,7 +356,7 @@ if TRAIN: #--------------------------------------------------------
     msg += f"Are we using masking during training? {specAug}\n"
     if specAug:
         msg += f"Time Masking Coeff.: {TM}, Frequency Masking: {FM}\n"
-    msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
+    msg += f"This run took {(time.process_time() - start_time):.2f} seconds\n"
     log_message(msg, train_log, 'a', True)
     
     #Log labels' conversions (from IPA to char and char to int)

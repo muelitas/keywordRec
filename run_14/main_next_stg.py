@@ -44,7 +44,7 @@ data_root = str(Path.home()) + '/Desktop/ctc_data'
 
 prev_chckpt_dir = 'ML2_yTSx4_60E3' #Previous checkpoint folder name
 prev_chckpt_stg = 'stg1' #Previous checkpoint stage name
-new_chckpt_stg = 'stg_dummy' #Stage name for new checkpoint
+new_chckpt_stg = 'stg_KAx4_60E' #Stage name for new checkpoint
 prev_chckpt_name = 'checkpoint_onRun01onEpoch023.tar'
 new_chckpt_name = 'checkpoint.tar'
 
@@ -73,7 +73,7 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': 1,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
@@ -129,7 +129,7 @@ KA_data = {
 #Kaggle's dataset (ran through pyroom, 4 diff. locs.)
 KAx4 = {
     'dataset_ID': 'KAx4',
-    'use_dataset': 0,
+    'use_dataset': 1,
     'dict': data_root + '/dict/ka_dict.pickle',
     'transcript': data_root + '/spctrgrms/pyroom/KAx4/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_x4_train.csv',
@@ -198,7 +198,7 @@ the chosen datasets. For example, if you chose to use KA, the run will only
 have 38 classes (number of unique phonemes in KA). But if you want to train
 also in english phonemes, you'll have to specify the path or paths to english
 dictionary(ies).'''
-other_dicts = []
+other_dicts = [data_root + '/dict/ts_dict.pickle']
 
 #Specify which datasets you want to use for training
 datasets = [TS_data, KA_data, TI_train, TI_test, SC_data, AO_engl, AO_span,
@@ -219,17 +219,17 @@ specAug = False #Whether to use spec augment during training
 #will freeze. If set to True, I won't. Last layer will be edited either way.
 CNN = {'change': False, 'cnn1_filters': 4, 'cnn1_kernel': 3,
        'cnn1_stride': cnstnt.CNN_STRIDE}
-GRU = {'change': False, 'gru_dim': 32, 'gru_hid_dim': 32, 'gru_layers': 2,
+GRU = {'change': True, 'gru_dim': 64, 'gru_hid_dim': 64, 'gru_layers': 2,
        'gru_dropout': 0.1}
 #As of right now, number of mels must remain the same; n_mels = 128
 
 #Other hyper parameters
 HP = {'n_class': {'change': True, 'value': -1}, #dynamically edited later
       'dropout': {'change': False, 'value': 0.1}, #classifier's dropout
-      'e_0':      {'change': True, 'value': 3e-2}, #learning rate
-      'T':      {'change': True, 'value': -1}, #learning rate's coeff.
+      'e_0':      {'change': True, 'value': 3e-3}, #learning rate
+      'T':      {'change': True, 'value': 40}, #learning rate's coeff.
       'bs':      {'change': False, 'value': 2}, #batch size
-      'epochs':  {'change': True, 'value': 10}}
+      'epochs':  {'change': True, 'value': 60}}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -316,8 +316,8 @@ if TRAIN: #--------------------------------------------------------
                                 **kwargs)
         
     #To keep track of run time, PERs and best model
-    pers, best_per, best_model_wts, epoch_num = [], 2.0, {}, ''
-    start_time = time.time()
+    pers, best_per, best_model_wts, epoch_num = [], 2.0, {}, '-1'
+    start_time = time.process_time()
     
     metrics = Metrics()
     MSG = '\t'
@@ -330,9 +330,13 @@ if TRAIN: #--------------------------------------------------------
         dev(model, device, dev_loader, criterion, epoch,
             train_log, blank_label, int2char, char2ipa, metrics)
         
-        #If current PER is lower than best global PER, copy the model
+        #Check if ratio loss is between 1.01 and 0.99
+        keep_it = metrics.keep_result()
+        
+        #If {keep_it} is True and current PER is lower than best global PER,
+        #copy model
         epoch_per = metrics.dev_pers[-1]
-        if epoch_per < best_per:
+        if epoch_per < best_per and keep_it:
             best_per = epoch_per
             best_model_wts = copy.deepcopy(model.state_dict())
             # optimizer_state_dict = copy.deepcopy(optimizer.state_dict())
@@ -356,7 +360,7 @@ if TRAIN: #--------------------------------------------------------
         
     #Save weights of best model, along with its optimizer state and hparams
     new_chckpt_path = save_chckpnt(best_model_wts, hparams, new_chckpt_path,
-        '1', epoch_num)
+        '1', epoch_num, train_log)
     
     #Log summary of values, paths and attributes used
     msg += f"Checkpoint has been saved here: {new_chckpt_path}\n"
@@ -375,7 +379,7 @@ if TRAIN: #--------------------------------------------------------
     msg += f"Are we using masking during training? {specAug}\n"
     if specAug:
         msg += f"Time Masking Coeff.: {TM}, Frequency Masking: {FM}\n"
-    msg += f"This run took {(time.time() - start_time):.2f} seconds\n"
+    msg += f"This run took {(time.process_time() - start_time):.2f} seconds\n"
     log_message(msg, train_log, 'a', True)
     
     #Log labels' conversions (from IPA to char and char to int)

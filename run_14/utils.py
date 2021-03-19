@@ -207,6 +207,17 @@ class Metrics:
                 msg = 'EARLY STOP due to OVERFIT | '
                 
         return stop, msg
+    
+    def keep_result(self):
+        '''Determine whether or not to keep the given variables'''
+        curr_ratio_loss = self.ratio_losses[-1]
+        #If ratio loss is between 1.01 and 0.99 take it into consideration
+        if curr_ratio_loss < 1.01 and curr_ratio_loss > 0.99:
+            return True
+        #Otherwise don't
+        else:
+            return False
+        
             
 def chars_to_int(text, char2int):
     '''Convert string of chars to list of integers'''
@@ -662,17 +673,24 @@ def warn():
     return cnstnt.P + "WARNING:" + cnstnt.W
 
 def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
-                     epoch_num):
-    '''Save the best models's weights and hyper parameters used for such'''
-    save_path = checkpoint_path[:-4] + f'_onRun{run_num.zfill(2)}'
-    save_path += f'onEpoch{epoch_num.zfill(3)}' + checkpoint_path[-4:]
-        
-    #This is the best model of all epochs and all runs
-    torch.save({
-        'model_state_dict': best_model_wts,
-        # 'optimizer_state_dict': optimizer_state_dict,
-        'hparams': best_hparams
-    }, save_path)
+                     epoch_num, train_log):
+    '''Save models's weights and hyper parameters. Only if the model had a
+    good ratio loss (between 0.99 and 1.01. Otherwise, don't save it.'''
+    if run_num != '-1' and epoch_num != '-1':
+        save_path = checkpoint_path[:-4] + f'_onRun{run_num.zfill(2)}'
+        save_path += f'onEpoch{epoch_num.zfill(3)}' + checkpoint_path[-4:]
+            
+        #This is the best model of all epochs and all runs
+        torch.save({
+            'model_state_dict': best_model_wts,
+            # 'optimizer_state_dict': optimizer_state_dict,
+            'hparams': best_hparams
+        }, save_path)
+    else:
+        msg = "\nMODEL DIDN'T HAVE A RATIO LOSS BETWEEN 1.01 AND 0.99. I AM "
+        msg += "NOT SAVING THE MODEL.\n"
+        log_message(msg, train_log, 'a', True)
+        save_path = 'ModelNotSaved'
     
     return save_path
 
