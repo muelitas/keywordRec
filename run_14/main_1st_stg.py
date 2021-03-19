@@ -57,7 +57,7 @@ k_words = ['zero', 'one', 'two', 'three', 'five', 'number', 'numbers', 'cero',
 #TTS and gTTS's variables and paths (all stored in one dictionary)
 TS_data = {
     'dataset_ID': 'TS',
-    'use_dataset': 1,
+    'use_dataset': 0,
     'dict': data_root + '/dict/ts_dict.pickle',
     'transcript': data_root + '/spctrgrms/clean/TS/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_train.csv',
@@ -193,7 +193,7 @@ dev_csv = gt_csvs_folder + '/all_dev.csv'
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 4, 'p': 0.999, 't': 1.0, 'w': 8}
+early_stop = {'n': 6, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 specAug = False #Whether to use spec augment during training

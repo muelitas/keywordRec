@@ -210,7 +210,7 @@ dev_csv = gt_csvs_folder + '/all_dev.csv'
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 4, 'p': 0.999, 't': 1.0, 'w': 8}
+early_stop = {'n': 6, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM Will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 specAug = False #Whether to use spec augment during training

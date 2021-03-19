@@ -212,7 +212,7 @@ class Metrics:
         '''Determine whether or not to keep the given variables'''
         curr_ratio_loss = self.ratio_losses[-1]
         #If ratio loss is between 1.01 and 0.99 take it into consideration
-        if curr_ratio_loss < 1.01 and curr_ratio_loss > 0.99:
+        if curr_ratio_loss < 1.02 and curr_ratio_loss > 0.98:
             return True
         #Otherwise don't
         else:
