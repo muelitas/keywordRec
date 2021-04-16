@@ -33,14 +33,14 @@ warnings.filterwarnings("ignore")
 
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
-TRAIN = True #train and validate!
+TRAIN = 1 #train and validate!
 
 #Root location of logs, plots and checkpoints
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
 #Root location of spectrograms and dictionaries
 data_root = str(Path.home()) + '/Desktop/ctc_data'
 #Nomenclature: K=1000; E=epochs
-logs_folder = runs_root + '/testing/stg1'
+logs_folder = runs_root + '/testingLRs/stg1'
 misc_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
 chckpnt_path = logs_folder + '/checkpoint.tar'
@@ -70,11 +70,11 @@ TSx4 = {
     'dataset_ID': 'TSx4',
     'use_dataset': 0,
     'dict': data_root + '/dict/ts_dict.pickle',
-    'transcript': data_root + '/spctrgrms/pyroom/TSx4/transcript.txt',
+    'transcript': data_root + '/spctrgrms/pyroom/TSx4v3/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_x4_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_x4_dev.csv',
     'splits': [0.9, 0.1],
-    'num': 6000 #Set equal to None if you want to use all audios
+    'num': 7000 #Set equal to None if you want to use all audios
 }
 
 TS_kwords = {
@@ -99,6 +99,17 @@ TS_spang = {
     'num': None #Set equal to None if you want to use all audios
 }
 
+TS_phrases = {
+    'dataset_ID': 'TS_phrases_x4',
+    'use_dataset': 1,
+    'dict': data_root + '/dict/ts_sp_phrases.pickle',
+    'transcript': data_root + '/spctrgrms/pyroom/TS_SP_phrases/transcript.txt',
+    'train_csv': gt_csvs_folder + '/ts_sp_x4_train.csv',
+    'dev_csv': gt_csvs_folder + '/ts_sp_x4_dev.csv',
+    'splits': [0.9, 0.1],
+    'num': 100 #Set equal to None if you want to use all audios
+}
+
 #Kaggle's variables and paths
 KA_data = {
     'dataset_ID': 'KA',
@@ -107,7 +118,8 @@ KA_data = {
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_dev.csv',
-    'splits': [0.9, 0.1]
+    'splits': [0.9, 0.1],
+    'num': None
 }
 #Kaggle's dataset (ran through pyroom, 4 diff. locations)
 KAx4 = {
@@ -117,7 +129,8 @@ KAx4 = {
     'transcript': data_root + '/spctrgrms/pyroom/KAx4/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_x4_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_x4_dev.csv',
-    'splits': [0.9, 0.1]
+    'splits': [0.9, 0.1],
+    'num': None
 }
 
 #TIMIT's variables and paths
@@ -185,7 +198,7 @@ other_dicts = []
 
 #Specify which datasets you want to use for training
 datasets = [TS_data, KA_data, TI_train, TI_test, SC_data, AO_engl, AO_span,
-            TS_spang, TS_kwords, TSx4, KAx4]
+            TS_spang, TS_kwords, TSx4, KAx4, TS_phrases]
 #Location of "final" csvs, the ones that will be used to train and validate
 train_csv = gt_csvs_folder + '/all_train.csv'
 dev_csv = gt_csvs_folder + '/all_dev.csv'
@@ -193,7 +206,7 @@ dev_csv = gt_csvs_folder + '/all_dev.csv'
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 6, 'p': 0.999, 't': 1.0, 'w': 8}
+early_stop = {'n': 7, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 specAug = False #Whether to use spec augment during training
@@ -202,17 +215,17 @@ specAug = False #Whether to use spec augment during training
 HP = {  'cnn1_filters': [4],
         'cnn1_kernel': [3],
         'cnn1_stride': [cnstnt.CNN_STRIDE],
-        'gru_dim': [32],
-        'gru_hid_dim': [32],
+        'gru_dim': [8],
+        'gru_hid_dim': [8],
         'gru_layers': [2],
         'gru_dropout': [0.1],
         'n_class': [-1], #dynamically initialized later
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
         'e_0': [3e-4], #initial learning rate
-        'T': [30], #Set to -1 if you want a steady LR throughout training
+        'T': [-1], #Set to -1 if you want a steady LR throughout training
         'bs': [2], #batch size
-        'epochs': [20]}
+        'epochs': [1]}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################

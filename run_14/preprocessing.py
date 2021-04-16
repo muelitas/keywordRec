@@ -227,12 +227,20 @@ def KA_create_csv(dataset, k_words_path):
     
     random.shuffle(lines)
     
+    #If desired number of audios to use exceeds available audios, give warning
+    if((dataset['num'] != None) and (dataset['num'] >= len(lines))):
+        print(f"\nWARNING: {dataset['num']} is out of range for TS's dataset."
+              " I am setting 'num' equal to 'None'. This will give you all "
+              "the audios in the Dataset.")
+        dataset['num'] = None
+    
     #Determine how many samples I will need for validation
-    dev_split = int(dataset['splits'][1] * len(lines))
+    num = len(lines) if dataset['num'] == None else dataset['num']
+    dev_split = int(dataset['splits'][1] * num)
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
     f = open(dataset['train_csv'], 'w')
-    for item in lines[dev_split:]:
+    for item in lines[dev_split:dataset['num']]:
         pt_path, old_sentence, duration = item.split('\t')
         new_sentence = []
         words = old_sentence.split(' ')
@@ -273,7 +281,7 @@ def KA_create_csv(dataset, k_words_path):
     
     print(f"\nThe files '{dataset['train_csv'].split('/')[-1]}' and "
           f"'{dataset['dev_csv'].split('/')[-1]}' have been created; "
-          f"{len(lines[dev_split:])} and {dev_split}"
+          f"{len(lines[dev_split:dataset['num']])} and {dev_split}"
           " lines have been added to each file respectively.\n")
     
 def TI_create_csv(dataset, k_words_path):
@@ -523,7 +531,7 @@ def KA_check(k_words, dataset):
     words_not_in_dict, found_here =  [], []
     del dict_words
     
-    print("Checking Kaggle's transcript...", end='')
+    print(f"Checking {dataset['dataset_ID']}'s transcript...", end='')
     with open(dataset['transcript'], 'r') as transcr:
         for line in transcr:
             sentence = line.split('\t')[1]
@@ -778,7 +786,8 @@ def dataset_create_csv(k_words, dataset, k_words_path, misc_log):
         #TTS and gTTS
         TS_check(k_words, dataset)
         TS_create_csv(dataset, k_words_path)
-    elif ID == 'KA' or ID == 'KAx4': #Kaggle
+    elif ID == 'KA' or ID == 'KAx4' or ID == 'TS_phrases_x4':
+        #Applies for Kaggle and TTS_Phrases
         KA_check(k_words, dataset)
         KA_create_csv(dataset, k_words_path)
     elif ID == 'TI_tr' or ID == 'TI_te':
