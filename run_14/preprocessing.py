@@ -237,10 +237,11 @@ def KA_create_csv(dataset, k_words_path):
     #Determine how many samples I will need for validation
     num = len(lines) if dataset['num'] == None else dataset['num']
     dev_split = int(dataset['splits'][1] * num)
+    test_split = int(dataset['splits'][2] * num)
     
     #Get training samples; save tensor paths and their phonemes in {train_csv}
     f = open(dataset['train_csv'], 'w')
-    for item in lines[dev_split:dataset['num']]:
+    for idx_tr, item in enumerate(lines[dev_split + test_split : num]):
         pt_path, old_sentence, duration = item.split('\t')
         new_sentence = []
         words = old_sentence.split(' ')
@@ -259,7 +260,7 @@ def KA_create_csv(dataset, k_words_path):
     
     #Get validation samples; save tensor paths and their phonemes in {dev_csv}
     f = open(dataset['dev_csv'], 'w')
-    for item in lines[:dev_split]:
+    for idx_dev, item in enumerate(lines[dev_split:dev_split + test_split]):
         pt_path, old_sentence, duration = item.split('\t')
         new_sentence = []
         words = old_sentence.split(' ')
@@ -276,13 +277,28 @@ def KA_create_csv(dataset, k_words_path):
         
     f.close()
     
+    #Get testing samples; save tensor paths and their phonemes in {test_csv}
+    f = open(dataset['test_csv'], 'w')
+    for idx_te, item in enumerate(lines[:test_split]):
+        pt_path, old_sentence, duration = item.split('\t')
+        new_sentence = []
+        words = old_sentence.split(' ')
+        for word in words:
+            phs_seq = dict_words[word] #phonemes translation of word
+            phs_seq = phs_seq.replace(' ', '_')
+            new_sentence.append(phs_seq)
+        
+        f.write(pt_path + '\t' + ' '.join(new_sentence) + '\t' + duration)
+        
+    f.close()
+    
     #Save updated {k_words_num}
     pickle.dump(k_words_num, open(k_words_path, "wb"))
     
-    print(f"\nThe files '{dataset['train_csv'].split('/')[-1]}' and "
-          f"'{dataset['dev_csv'].split('/')[-1]}' have been created; "
-          f"{len(lines[dev_split:dataset['num']])} and {dev_split}"
-          " lines have been added to each file respectively.\n")
+    print(f"\nThe files\n - {dataset['train_csv']}\n - "
+          f"{dataset['dev_csv']}'\n - {dataset['test_csv']}\nhave been "
+          f"created; {idx_tr+1}, {idx_dev+1} and {idx_te+1} lines have been "
+          f"added to each file respectively.\n")
     
 def TI_create_csv(dataset, k_words_path):
     '''Iterates through lines in {transcript} and creates 2 transcripts
