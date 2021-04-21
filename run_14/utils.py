@@ -115,6 +115,7 @@ def plot_and_save(dev_losses, train_losses, dev_pers, train_pers, lrs, run,
     
     #Validation and Training Losses
     fig_name = logs_folder + file_name + '.png'
+    plt.rcParams.update({'font.size': 16})
     fig, ax = plt.subplots()  # a figure with a single Axes
     ax.set_title(f'Run {run}: Valid Loss vs. Train Loss')
     x = list(range(1, len(dev_losses)+1))
@@ -124,6 +125,7 @@ def plot_and_save(dev_losses, train_losses, dev_pers, train_pers, lrs, run,
     ax.set_xlabel('Epochs')
     ax.set_ylabel('Losses')
     ax.legend(loc='upper center', shadow=True, fontsize='small')
+    plt.tight_layout() #gives space to x label in the .png file
     plt.savefig(fig_name)
     plt.show()
     
@@ -138,6 +140,7 @@ def plot_and_save(dev_losses, train_losses, dev_pers, train_pers, lrs, run,
     ax.set_xlabel('Epochs')
     ax.set_ylabel('PERs')
     ax.legend(loc='upper center', shadow=True, fontsize='small')
+    plt.tight_layout()
     plt.savefig(fig_name)
     plt.show()
     
@@ -151,6 +154,7 @@ def plot_and_save(dev_losses, train_losses, dev_pers, train_pers, lrs, run,
     ax.set_xlabel('Epochs')
     ax.set_ylabel('Learning Rates')
     ax.legend(loc='upper center', shadow=True, fontsize='small')
+    plt.tight_layout()
     plt.savefig(fig_name)
     plt.show()
     
@@ -198,18 +202,19 @@ class Metrics:
                 stop = True
                 msg = 'EARLY STOP due to PER | '
             
-            #n previous ratio losses
-            ratio_losses = self.ratio_losses[-early_stop['n']:]
-            #If all of them are above threshold t, stop due to overfitting
-            counter = [1 if i > early_stop['t'] else 0 for i in ratio_losses]
-            if sum(counter) == early_stop['n']:
-                stop = True
-                msg = 'EARLY STOP due to OVERFIT | '
+            #TEMPORARILY, I will due early stop using PER only
+            # #n previous ratio losses
+            # ratio_losses = self.ratio_losses[-early_stop['n']:]
+            # #If all of them are above threshold t, stop due to overfitting
+            # counter = [1 if i > early_stop['t'] else 0 for i in ratio_losses]
+            # if sum(counter) == early_stop['n']:
+            #     stop = True
+            #     msg = 'EARLY STOP due to OVERFIT | '
                 
         return stop, msg
     
-    def keep_result(self):
-        '''Determine whether or not to keep the given variables'''
+    def keep_RL_result(self):
+        '''Determine whether or not to keep checkpoint given the ratio loss'''
         curr_ratio_loss = self.ratio_losses[-1]
         #If ratio loss is between 1.01 and 0.99 take it into consideration
         if curr_ratio_loss < 1.02 and curr_ratio_loss > 0.98:
@@ -539,6 +544,8 @@ def train(model, device, train_loader, criterion, optimizer, scheduler,
         
         model.add_paddings(spectrograms)
         output = model(spectrograms)  # (batch, time, n_class)
+        #If I want to get probabilities, use F.softmax here.
+        #Reference: https://pytorch.org/tutorials/beginner/nlp/deep_learning_tutorial.html
         output = F.log_softmax(output, dim=2)
         output = output.transpose(0, 1) # (time, batch, n_class)
 
@@ -672,13 +679,15 @@ def warn():
     '''Prints 'WARNING' in orange'''
     return cnstnt.P + "WARNING:" + cnstnt.W
 
-def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
-                     epoch_num, train_log):
-    '''Save models's weights and hyper parameters. Only if the model had a
-    good ratio loss (between 0.99 and 1.01. Otherwise, don't save it.'''
+def save_chckpnt(best_model_wts, best_hparams, chkpnt_path, run_num,
+                     epoch_num, train_log, case):
+    '''Save models's weights and hyper parameters. I am saving two checkpoints
+    1) one in which the model reaches a low PER and great Ratio Loss (between
+    1.02 and 0.98) 2) and another one in which bestest PER is achieved (not
+    caring about the ration loss).'''
     if run_num != '-1' and epoch_num != '-1':
-        save_path = checkpoint_path[:-4] + f'_onRun{run_num.zfill(2)}'
-        save_path += f'onEpoch{epoch_num.zfill(3)}' + checkpoint_path[-4:]
+        save_path = chkpnt_path[:-4] + f'_OnRun{run_num.zfill(2)}'
+        save_path += f'Epoch{epoch_num.zfill(3)}Case{case}' + chkpnt_path[-4:]
             
         #This is the best model of all epochs and all runs
         torch.save({
@@ -687,10 +696,15 @@ def save_chckpnt(best_model_wts, best_hparams, checkpoint_path, run_num,
             'hparams': best_hparams
         }, save_path)
     else:
-        msg = "\nMODEL DIDN'T HAVE A RATIO LOSS BETWEEN 1.01 AND 0.99. I AM "
-        msg += "NOT SAVING THE MODEL.\n"
+        if case == 'YesRL':
+            msg = "\nMODEL DIDN'T HAVE A RATIO LOSS BETWEEN 1.02 AND 0.98. "
+            msg += "I AM NOT SAVING THE MODEL.\n"
+        else:
+            msg = "\nFOR SOME REASON, I DIDN'T NOT GET A BEST MODEL "
+            msg += "(INDEPENDENDENT OF THE RATIO LOSS). CHECK IT OUT.\n"
+            
         log_message(msg, train_log, 'a', True)
-        save_path = 'ModelNotSaved'
+        save_path = f'ModelNotSaved_{case}'
     
     return save_path
 

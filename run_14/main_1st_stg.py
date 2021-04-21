@@ -33,7 +33,7 @@ warnings.filterwarnings("ignore")
 
 ##############################################################################
 #VARIABLES THAT MIGHT NEED TO BE CHANGED ARE ENCLOSED IN THESE HASHTAGS
-TRAIN = 1 #train and validate!
+TRAIN =  1 #train and validate!
 
 #Root location of logs, plots and checkpoints
 runs_root = str(Path.home()) + '/Desktop/ctc_runs'
@@ -43,7 +43,7 @@ data_root = str(Path.home()) + '/Desktop/ctc_data'
 logs_folder = runs_root + '/testingLRs/stg1'
 misc_log = logs_folder + '/miscellaneous.txt'
 train_log = logs_folder + '/train_logs.txt'
-chckpnt_path = logs_folder + '/checkpoint.tar'
+chckpnt_path = logs_folder + '/chkpnt.tar'
 k_words_path = logs_folder + '/k_words_instances.pickle'
 #Used to determine the labels and translations between them
 ipa2char, char2ipa, char2int, int2char, blank_label = {}, {}, {}, {}, 0
@@ -106,8 +106,9 @@ TS_phrases = {
     'transcript': data_root + '/spctrgrms/pyroom/TS_SP_phrases/transcript.txt',
     'train_csv': gt_csvs_folder + '/ts_sp_x4_train.csv',
     'dev_csv': gt_csvs_folder + '/ts_sp_x4_dev.csv',
-    'splits': [0.9, 0.1],
-    'num': 100 #Set equal to None if you want to use all audios
+    'test_csv': gt_csvs_folder + '/ts_sp_x4_test.csv',
+    'splits': [0.8, 0.1, 0.1], #train, dev, test
+    'num': 1000 #Set equal to None if you want to use all audios
 }
 
 #Kaggle's variables and paths
@@ -118,7 +119,7 @@ KA_data = {
     'transcript': data_root + '/spctrgrms/clean/KA/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_dev.csv',
-    'splits': [0.9, 0.1],
+    'splits': [0.9, 0.1, 0.0],
     'num': None
 }
 #Kaggle's dataset (ran through pyroom, 4 diff. locations)
@@ -129,7 +130,7 @@ KAx4 = {
     'transcript': data_root + '/spctrgrms/pyroom/KAx4/transcript.txt',
     'train_csv': gt_csvs_folder + '/ka_x4_train.csv',
     'dev_csv': gt_csvs_folder + '/ka_x4_dev.csv',
-    'splits': [0.9, 0.1],
+    'splits': [0.9, 0.1, 0.0],
     'num': None
 }
 
@@ -206,26 +207,26 @@ dev_csv = gt_csvs_folder + '/all_dev.csv'
 #TRAIN------------------------------------------------------------------------
 other_chars = [' '] # other_chars = ["'", ' ']
 manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
-early_stop = {'n': 7, 'p': 0.999, 't': 1.0, 'w': 8}
+early_stop = {'n': 5, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
 specAug = False #Whether to use spec augment during training
 
 #Hyper Parameters
-HP = {  'cnn1_filters': [4],
+HP = {  'cnn1_filters': [8],
         'cnn1_kernel': [3],
         'cnn1_stride': [cnstnt.CNN_STRIDE],
-        'gru_dim': [8],
-        'gru_hid_dim': [8],
+        'gru_dim': [64],
+        'gru_hid_dim': [64],
         'gru_layers': [2],
         'gru_dropout': [0.1],
         'n_class': [-1], #dynamically initialized later
         'n_mels': [128],
         'dropout': [0.1], #classifier's dropout
-        'e_0': [3e-4], #initial learning rate
-        'T': [-1], #Set to -1 if you want a steady LR throughout training
+        'e_0': [5e-4], #initial learning rate
+        'T': [35], #Set to -1 if you want a steady LR throughout training
         'bs': [2], #batch size
-        'epochs': [1]}
+        'epochs': [60]}
 
 #YOU SHOULDN'T HAVE TO EDIT ANY VARIABLES FROM HERE ON
 ##############################################################################
@@ -266,9 +267,14 @@ if TRAIN: #--------------------------------------------------------
     train_dataset = CUSTOM_DATASET(train_csv, ipa2char)
     dev_dataset = CUSTOM_DATASET(dev_csv, ipa2char)
     
-    #To keep track of best metrics, best model and best hyper params.
-    best_pers, global_best_per, best_model_wts, best_hparams = [], 2.0, {}, {}
-    optimizer_state_dict, run_num, epoch_num = {}, '-1', '-1'
+    #Variables related to best PER given a great ratio loss:
+    RL_global_best_per, RL_best_model_wts, RL_best_hparams, RL_run_num, \
+        RL_epoch_num = 2.0, {}, {}, '-1', '-1'
+    
+    #Variables related to best PER of all (no caring about anything else)
+    best_pers, global_best_per, best_model_wts, best_hparams, run_num, \
+        epoch_num = [], 2.0, {}, {}, '-1', '-1'
+    # optimizer_state_dict = {}
         
     #Iterate through hyper parameters
     start_time = time.process_time()
@@ -307,13 +313,22 @@ if TRAIN: #--------------------------------------------------------
             dev(model, device, dev_loader, criterion, epoch,
                 train_log, blank_label, int2char, char2ipa, metrics)
             
-            #Check if ratio loss is between 1.01 and 0.99
-            keep_it = metrics.keep_result()
+            #Check if ratio loss is between 1.02 and 0.98
+            keep_it = metrics.keep_RL_result()
             
-            #If {keep_it} is True and current PER is lower than best global
-            #PER, copy model
+            #If {keep_it} is True and current PER is lower than
+            #{RL_global_best_per}, copy model
             epoch_per = metrics.dev_pers[-1]
-            if epoch_per < global_best_per and keep_it:
+            if epoch_per < RL_global_best_per and keep_it:
+                RL_global_best_per = epoch_per
+                RL_best_model_wts = copy.deepcopy(model.state_dict())
+                # optimizer_state_dict = copy.deepcopy(optimizer.state_dict())
+                RL_best_hparams = hparams
+                RL_run_num = str(idx+1)
+                RL_epoch_num = str(epoch)
+            
+            #If current PER is less than {global_best_per}, copy model
+            if epoch_per < global_best_per:
                 global_best_per = epoch_per
                 best_model_wts = copy.deepcopy(model.state_dict())
                 # optimizer_state_dict = copy.deepcopy(optimizer.state_dict())
@@ -349,13 +364,18 @@ if TRAIN: #--------------------------------------------------------
         torch.cuda.empty_cache()
     
     #Save weights of best model, along with its optimizer state and hparams
-    chckpnt_path = save_chckpnt(best_model_wts, best_hparams, chckpnt_path,
-        run_num, epoch_num, train_log)
+    #Save the one dependent on the Ratio Loss
+    chckpnt_path_RL = save_chckpnt(RL_best_model_wts, RL_best_hparams, 
+        chckpnt_path, RL_run_num, RL_epoch_num, train_log, 'YesRL')
+    #And the one independent of the Ratio Loss
+    chckpnt_path_PER = save_chckpnt(best_model_wts, best_hparams, chckpnt_path,
+        run_num, epoch_num, train_log, 'NoRL')
     
     #Record "bestest" metrics, run-time, and others
     msg = f"\nBest PER of all was {min(best_pers):.4f} on run "
     msg += f"{best_pers.index(min(best_pers)) + 1}\n"
-    msg += f"Checkpoint has been saved here: {chckpnt_path}\n"
+    msg += f"chckpnt_path_PER has been saved here: {chckpnt_path_PER}\n"
+    msg += f"chckpnt_path_RL has been saved here: {chckpnt_path_RL}\n"
     msg += f"Number of parameters in model: {num_params}\n"
     msg += f"In all runs, training set had {len(train_dataset)} audio files "
     msg += f"equivalent to {train_dataset.duration:.2f} seconds\n"
