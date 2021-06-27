@@ -3,7 +3,11 @@
     Author(s): Mario Esparza, Luis Sanchez
     Date: 02/26/2021
     
-    TODO
+    In this document, one determines the dataset or datasets to use for
+    training as well as the hyper parameters. ParameterGrid is incorporated in
+    case multiple hyper parameters want to be tested in the same run. Most of
+    the training information is saved in a log file located at the paths
+    specified in {train_log} and {misc_log}.
     
 ***************************************************************************''' 
 import copy 
@@ -210,7 +214,7 @@ manual_chars = ['!','?','(',')','+','*','#','$','&','-','=',':']
 early_stop = {'n': 5, 'p': 0.999, 't': 1.0, 'w': 8}
 #TM will be multiplied by the 'time' length of the spectrograms
 FM, TM = 27, 0.125 #Frequency and Time Masking Attributes
-specAug = False #Whether to use spec augment during training
+specAug = False #Whether to use spec augment during training or not
 
 #Hyper Parameters
 HP = {  'cnn1_filters': [8],
@@ -408,15 +412,3 @@ Transfer Learning: https://pytorch.org/tutorials/beginner/finetuning_torchvision
 Transfer Learning: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 Transfer Learning: https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-a-general-checkpoint-for-inference-and-or-resuming-training
 Learning Rate Technique from https://www.deeplearningbook.org/contents/optimization.html'''
-
-'''NOTES:
--Having two consecutive labels together may cause CTC to give an inf loss
--I am removing audio 32-4137-0011 from transcript in LS's train-clean-100
--To create a new "slim" version of SC, use: run_04/SC_full_to_slim.py
--In customdict I switched places of 'one   w ah n' and 'one  hh w ah n'
--I am removing TIMIT's and AOLME's preprocessing functions, since I am
-only using SC right now. Refer to folder "run06" to find those functions.
--I am removing SC functions, right now, only spanish (refer to run_08 for SC).
--In run_10, I am changing my early stop logic. Using CER only.
--In run_11, I am loading saved spectrograms instead of calculating them.
--In run 12, we migrate to github.'''

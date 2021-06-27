@@ -3,7 +3,10 @@
     Author(s): Mario Esparza, Luis Sanchez
     Date: 02/26/2021
     
-    TODO
+    This encompasses the pre-processing techniques that happen right
+    before training. Examples are: create ground truth csv files, check
+    condition of audios, get mappings' dictionaries between phonemes and
+    numbered labels, etc.
     
 ***************************************************************************''' 
 import os

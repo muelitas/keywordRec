@@ -3,9 +3,8 @@
     Author(s): Mario Esparza, Luis Sanchez
     Date: 03/01/2021
     
-    TODO
     This stage reads from a previous stage and saves a new (further trained)
-    checkpoint.
+    checkpoint. Used for transfer learning.
     
 ***************************************************************************''' 
 import copy 

@@ -3,10 +3,11 @@
     Author(s): Mario Esparza, Luis Sanchez
     Date: 02/26/2021
     
-    TODO
-    
-***************************************************************************''' 
-#Source: https://colab.research.google.com/drive/1IPpwx4rX32rqHKpLz7dc8sOKspUa-YKO#scrollTo=RVJs4Bk8FjjO
+    Network architecture used to train the model.
+    Based on this implementation:
+    https://www.assemblyai.com/blog/end-to-end-speech-recognition-pytorch
+        
+***************************************************************************'''
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -26,7 +27,6 @@ class BiGRU(nn.Module):
         x, _ = self.BiGRU(x)
         x = self.dropout(x)
         return x
-
 
 class SpeechRecognitionModel(nn.Module):
     def __init__(self, hparams):        

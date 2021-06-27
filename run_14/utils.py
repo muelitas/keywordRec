@@ -3,11 +3,11 @@
     Author(s): Mario Esparza, Luis Sanchez
     Date: 02/26/2021
     
-    TODO
-    
+    Functions and classes used during training.
+    Some were obtained from here:
+    https://www.assemblyai.com/blog/end-to-end-speech-recognition-pytorch
 ***************************************************************************''' 
-#Source: https://colab.research.google.com/drive/1IPpwx4rX32rqHKpLz7dc8sOKspUa-YKO#scrollTo=RVJs4Bk8FjjO
-#Batch Sampler Idea from: https://gist.github.com/TrentBrick/bac21af244e7c772dc8651ab9c58328c
+
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -202,7 +202,7 @@ class Metrics:
                 stop = True
                 msg = 'EARLY STOP due to PER | '
             
-            #TEMPORARILY, I will due early stop using PER only
+            #TEMPORARILY, I will do early stop using PER only
             # #n previous ratio losses
             # ratio_losses = self.ratio_losses[-early_stop['n']:]
             # #If all of them are above threshold t, stop due to overfitting

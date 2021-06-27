@@ -3,9 +3,8 @@
     Author(s): Mario Esparza, Luis Sanchez
     Date: 03/03/2021
     
-    TODO
-    Load checkpoint (model) and perform inferences on specified dataset. 
-    Calcuate PER and WER.
+    Loads checkpoint (model) and performs inferences on specified dataset. 
+    Calcuates PER and WER.
     
 ***************************************************************************'''
 import os
