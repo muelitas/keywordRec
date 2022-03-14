@@ -26,18 +26,19 @@ For example:
 Once you have the .pickle file with IPA translations, use the `preprocess` command to obtain spectrograms from the dataset's audios. This command will also produce a .csv file with two columns: the first column will have the paths to each spectrogram and the second column will have an IPA translation of what is spoken in such spectrogram. Here's a sample of how it looks like inside the .csv file:
 TODO
 
-Options in the `preprocess` must be separated by a white space as well. These are the options it **must** include (unless specified otherwise):
-- Name of the pre-configured dataset you are trying to use \(refer to previous step for list of available pre-configured datasets)\).
+Options in the `preprocess` command must be separated by a white space as well. These are the options it **must** include (unless specified otherwise):
+- Name of the pre-configured dataset you are trying to use \(refer to previous step for list of available pre-configured datasets)\)
 - Path to parent directory where audio files are located
 - Path to directory where you wish to store spectrograms
 - Path to .pickle file (generated in previous step)
-- \(Optional\) Command `-n` allong with the number of audios that you wish to use
+- \(Optional\) Command `-n` allong with the number of audios that you wish to use \(if not provided, all audios will be used\)
 
 For example:
 `preprocess speech_commands /home/user1/Downloads/speech_commands_v2 /home/user1/Desktop/speech_commands /home/user1/Desktop/speech_commands/phonemes.pickle -n 35000`
 
 ### Step 4: Train!
-
+#### Step 4.1: Prepare Parameters
+There are two JSON files that must be updated before training. One is used to set model's hyper parameters (filters, layers, dropouts, etc.) which are then broken into lists of different datatypes and iterated through in a [Parameter Grid](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterGrid.html). These values **must** be split by a comma `,`. I have added the file \'hyperparameters_sample.json\' as a reference. The other JSON file is used to set parameters that deal with other portions of training such as early stopping, specaugment, data split-ratio, and others. These values **must not** be split by a comma `,` since they are meant to be single values per variable.
 
 All values in hyperparameters.json should be lists. "int" and "float" determine
 which datatype to set those values to.
