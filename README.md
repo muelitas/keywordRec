@@ -44,9 +44,16 @@ For example:
 
 ### Step 4: Train!
 #### Step 4.1: Prepare Parameters
-There are two JSON files that must be updated before training. One is used to set model's hyper parameters (filters, layers, dropouts, etc.) which are then broken into lists of different datatypes and iterated through in a [Parameter Grid](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterGrid.html). These values **must** be split by a comma `,`. I have added the file \'hyperparameters_sample.json\' as a reference. The other JSON file is used to set parameters that deal with other portions of training such as early stopping, specaugment, data split-ratio, etc. These values **must not** be split by a comma `,`. They are meant to be a single value per variable.
+There are two JSON files that must be updated before training. One is used to set model's hyper parameters (filters, layers, dropouts, etc.) which are then broken into lists of different datatypes and iterated through in a [Parameter Grid](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterGrid.html). These values **must** be split by a comma `,`. I have added the file \'hyperparameters_sample.json\' as a reference. The other JSON file is used to set parameters that deal with other portions of training such as early stopping, specaugment, data split-ratio, etc. These values **must not** be split by a comma `,`. They are meant to be a single value per variable. I have added the file \'otherparameters_sample.json\' as a reference.
 
 #### Step 4.2: 
+Once you have the *gt.csv*, *.pickle* and two JSON files, you should be able to run the `train` command. Opions must be split by a white space. These are the options that **must** be included with the command:
+- Path to *gt.csv*
+- Path to *.pickle*
+- Path to *hyper parameters* json
+- Path to *other parameters* json
+- Path to a folder where results and logs will be posted
 
-`train /home/user1/Desktop/speech_commands/gt.csv /home/user1/Desktop/speech_commands/phonemes.pickle /home/user1/Desktop/hyperparameters.json /home/user1/Desktop/otherparameters.json /home/user1/Desktop/dummy`
+For example:
+`train /home/user1/Desktop/speech_commands/gt.csv /home/user1/Desktop/speech_commands/phonemes.pickle /home/user1/Desktop/hyperparameters.json /home/user1/Desktop/otherparameters.json /home/user1/Desktop/results`
 
