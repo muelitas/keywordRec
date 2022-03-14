@@ -15,7 +15,7 @@ I recommend creating an environment (I used conda to do so) and install the foll
 
 ## Steps
 ### Step 1: Get Things Ready
-
+Make sure to download and untar (if needed) the dataset that you will use.
 
 ### Step 2: Phonemizing Dataset's Transcripts
 This project uses bootphon's [Phonemizer](https://github.com/bootphon/phonemizer) module to translate text transcripts into IPA phonemes. To do so, use the `phonemize` command. Make sure all options are separated by a white space. These are the options you **must** add to the command:
