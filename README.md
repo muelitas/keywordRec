@@ -1,16 +1,24 @@
 # End-to-end Speech Recognition of Spanish and English in Collaborative Learning Environments
 This work goes hand in hand with "Spanish and English Phoneme Recognition by Training on Simulated Classroom Audio Recordings of Collaborative Learning Environments" by Mario J. Esparza \([arxiv.org/abs/2202.10536](https://arxiv.org/abs/2202.10536)\). A model based on CNN-RNN networks capable of recognizing Spanish and English phonemes. After downloading and properly configuring this project, experiments can be run on Speech Commands. Work is currently being done so it can be used with LibriSpeech, TIMIT, CSS10 and Commonvoice.
 
-##Prerequisites
-TODO
+## Prerequisites
+- pytorch
+- numpy
+- matplotlib
+- torchaudio
 
-##Steps
-###Step 1: Get Things Ready
+## Steps
+### Step 1: Get Things Ready
 
 
-###Step 2: Phonemizing Dataset's Transcripts
-This project uses bootphon's [Phonemizer](https://github.com/bootphon/phonemizer) module to translate text transcripts into IPA phonemes. To do so, use the `preprocess` command; which must follow these guidelines:
+### Step 2: Phonemizing Dataset's Transcripts
+This project uses bootphon's [Phonemizer](https://github.com/bootphon/phonemizer) module to translate text transcripts into IPA phonemes. To do so, use the `preprocess` command. Make sure all options are separated by a white space. These are the options you **must** add to the command:
+- Name of the pre-configured dataset you are trying to use
+- Path to parent directory where audio files are located
+- Path to a .pickle file where IPA translations will be saved as a dictionary
 
+For example:
+`phonemize speech_commands /home/user1/Downloads/speech_commands_v2 /home/user1/Desktop/speech_commands/phonemes.pickle`
 
 All values in hyperparameters.json should be lists. "int" and "float" determine
 which datatype to set those values to.
