@@ -1,5 +1,5 @@
 # End-to-end Speech Recognition of Spanish and English in Collaborative Learning Environments
-This work goes hand in hand with "Spanish and English Phoneme Recognition by Training on Simulated Classroom Audio Recordings of Collaborative Learning Environments" by Mario J. Esparza \([arxiv.org/abs/2202.10536]\)(https://arxiv.org/abs/2202.10536). A model based on CNN-RNN networks capable of recognizing Spanish and English phonemes. After downloading and properly configuring this project, experiments can be run on Speech Commands. Work is currently being done so it can be used with LibriSpeech, TIMIT, CSS10 and Commonvoice.
+This work goes hand in hand with "Spanish and English Phoneme Recognition by Training on Simulated Classroom Audio Recordings of Collaborative Learning Environments" by Mario J. Esparza \([arxiv.org/abs/2202.10536](https://arxiv.org/abs/2202.10536)\). A model based on CNN-RNN networks capable of recognizing Spanish and English phonemes. After downloading and properly configuring this project, experiments can be run on Speech Commands. Work is currently being done so it can be used with LibriSpeech, TIMIT, CSS10 and Commonvoice.
 
 ##Prerequisites
 TODO
