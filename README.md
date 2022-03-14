@@ -2,12 +2,16 @@
 This work goes hand in hand with "Spanish and English Phoneme Recognition by Training on Simulated Classroom Audio Recordings of Collaborative Learning Environments" by Mario J. Esparza \([arxiv.org/abs/2202.10536](https://arxiv.org/abs/2202.10536)\). A model based on CNN-RNN networks capable of recognizing Spanish and English phonemes. After downloading and properly configuring this project, experiments can be run on Speech Commands. Work is currently being done so it can be used with LibriSpeech, TIMIT, CSS10 and Commonvoice.
 
 ## Prerequisites
-- pytorch
-- numpy
-- matplotlib
-- torchaudio
-- scikit-learn
-- pip install phonemizer
+I recommend creating an environment (I used conda to do so) and install the following modules and versions:
+- python 3.10.0 (using conda)
+- pytorch 1.11.0 (using conda)
+- cudatoolkit 11.3.1 (might be installed when installing pytorch)
+- numpy 1.21.2 (using conda)
+- matplotlib 3.5.1 (using conda)
+- torchaudio 0.11.0 (using conda)
+- scikit-learn 1.0.1 (using conda)
+- scipy 1.7.3 (using conda)
+- phoemizer 3.0.1 (using pip)
 
 ## Steps
 ### Step 1: Get Things Ready
