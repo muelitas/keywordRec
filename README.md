@@ -6,6 +6,8 @@ This work goes hand in hand with "Spanish and English Phoneme Recognition by Tra
 - numpy
 - matplotlib
 - torchaudio
+- scikit-learn
+- pip install phonemizer
 
 ## Steps
 ### Step 1: Get Things Ready
