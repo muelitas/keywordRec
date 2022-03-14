@@ -1,7 +1,16 @@
 # End-to-end Speech Recognition of Spanish and English in Collaborative Learning Environments
-Originally, this project was based on keyword recognition (keyword spotting), but it switched to end-to-end speech recognition. The folder src contains the procedures and model used to train a CNN-RNN network on Spanish and English (separately or jointly). This work goes hand in hand with "Spanish and English Phoneme Recognition by Training on Simulated Classroom Audio Recordings of Collaborative Learning Environments" by Mario J. Esparza. After downloading and properly configuring, experiments can be run in LibriSpeech, TIMIT, CSS10 and Speech Commands. The labels of the network are based on phonemes. We use the module Phonemizer by bootphon to "phonemize" text transcripts.
+This work goes hand in hand with "Spanish and English Phoneme Recognition by Training on Simulated Classroom Audio Recordings of Collaborative Learning Environments" by Mario J. Esparza \([arxiv.org/abs/2202.10536]\)(https://arxiv.org/abs/2202.10536). A model based on CNN-RNN networks capable of recognizing Spanish and English phonemes. After downloading and properly configuring this project, experiments can be run on Speech Commands. Work is currently being done so it can be used with LibriSpeech, TIMIT, CSS10 and Commonvoice.
 
-TODO: Add Thesis to Arxiv and place link here.
+##Prerequisites
+TODO
+
+##Steps
+###Step 1: Get Things Ready
+
+
+###Step 2: Phonemizing Dataset's Transcripts
+This project uses bootphon's [Phonemizer](https://github.com/bootphon/phonemizer) module to translate text transcripts into IPA phonemes. To do so, use the `preprocess` command; which must follow these guidelines:
+
 
 All values in hyperparameters.json should be lists. "int" and "float" determine
 which datatype to set those values to.
