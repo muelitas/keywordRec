@@ -19,14 +19,18 @@ This project uses bootphon's [Phonemizer](https://github.com/bootphon/phonemizer
   - \"speech_commands\"
 - Path to parent directory where audio files are located
 - Path to a .pickle file where IPA translations will be saved as a dictionary. Translations look like this:
-  - TODO
+  - up -> ʌ_p
+  - yes -> j_ɛ_s
+  - nine -> n_aɪ_n
+  - two -> t_uː
 
 For example:
 `phonemize speech_commands /home/user1/Downloads/speech_commands_v2 /home/user1/Desktop/speech_commands/phonemes.pickle`
 
 ### Step 3: Process Spectrograms
-Once you have the .pickle file with IPA translations, use the `preprocess` command to obtain spectrograms from the dataset's audios. This command will also produce a .csv file with two columns: the first column will have the paths to each spectrogram and the second column will have an IPA translation of what is spoken in such spectrogram. File will be called *gt.csv*. Here's a sample of how it looks inside the .csv file:
-TODO
+Once you have the .pickle file with IPA translations, use the `preprocess` command to obtain spectrograms from the dataset's audios. This command will also produce a .csv file with two columns: the first column will have the paths to each spectrogram and the second column will have an IPA translation of what is spoken in such spectrogram. File will be called *gt.csv*. Here are a few samples of how information is saved inside the .csv file:
+- /home/user1/Desktop/speech_commands/eight_893705bb_nohash_3.pt,eɪ_t
+- /home/user1/Desktop/speech_commands/tree_0d6d7360_nohash_0.pt,t_ɹ_iː
 
 Options in the `preprocess` command must be separated by a white space as well. These are the options it **must** include (unless specified otherwise):
 - Name of the pre-configured dataset you are trying to use \(refer to previous step for list of available pre-configured datasets)\)
