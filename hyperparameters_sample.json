@@ -1,0 +1,19 @@
+{  
+    "ints":{
+        "cnn1_filters": "4,16,",
+        "cnn1_kernel": "3,",
+        "cnn1_stride": "2,",
+        "gru_dim": "64,",
+        "gru_hid_dim": "64,",
+        "gru_layers": "2,",
+        "n_mels": "128,",
+        "T": "40,",
+        "bs": "2,",
+        "epochs": "60,"
+    },
+    "floats":{
+        "gru_dropout": "0.1,",
+        "dropout": "0.1,",
+        "e_0": "5e-4,"
+    }
+}
