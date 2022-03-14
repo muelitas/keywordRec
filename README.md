@@ -12,13 +12,32 @@ This work goes hand in hand with "Spanish and English Phoneme Recognition by Tra
 
 
 ### Step 2: Phonemizing Dataset's Transcripts
-This project uses bootphon's [Phonemizer](https://github.com/bootphon/phonemizer) module to translate text transcripts into IPA phonemes. To do so, use the `preprocess` command. Make sure all options are separated by a white space. These are the options you **must** add to the command:
-- Name of the pre-configured dataset you are trying to use
+This project uses bootphon's [Phonemizer](https://github.com/bootphon/phonemizer) module to translate text transcripts into IPA phonemes. To do so, use the `phonemize` command. Make sure all options are separated by a white space. These are the options you **must** add to the command:
+- Name of the pre-configured dataset you are trying to use. Currently, available options are:
+  - \"speech_commands\"
 - Path to parent directory where audio files are located
-- Path to a .pickle file where IPA translations will be saved as a dictionary
+- Path to a .pickle file where IPA translations will be saved as a dictionary. Translations look like this:
+  - TODO
 
 For example:
 `phonemize speech_commands /home/user1/Downloads/speech_commands_v2 /home/user1/Desktop/speech_commands/phonemes.pickle`
+
+### Step 3: Process Spectrograms
+Once you have the .pickle file with IPA translations, use the `preprocess` command to obtain spectrograms from the dataset's audios. This command will also produce a .csv file with two columns: the first column will have the paths to each spectrogram and the second column will have an IPA translation of what is spoken in such spectrogram. Here's a sample of how it looks like inside the .csv file:
+TODO
+
+Options in the `preprocess` must be separated by a white space as well. These are the options it **must** include (unless specified otherwise):
+- Name of the pre-configured dataset you are trying to use \(refer to previous step for list of available pre-configured datasets)\).
+- Path to parent directory where audio files are located
+- Path to directory where you wish to store spectrograms
+- Path to .pickle file (generated in previous step)
+- \(Optional\) Command `-n` allong with the number of audios that you wish to use
+
+For example:
+`preprocess speech_commands /home/user1/Downloads/speech_commands_v2 /home/user1/Desktop/speech_commands /home/user1/Desktop/speech_commands/phonemes.pickle -n 35000`
+
+### Step 4: Train!
+
 
 All values in hyperparameters.json should be lists. "int" and "float" determine
 which datatype to set those values to.
